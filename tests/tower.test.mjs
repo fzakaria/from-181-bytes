@@ -1,21 +1,19 @@
 // Tests site/js/tower.js, the geometry of the chain picture: one row per
-// floor, a band whose width grows with log10 of the bytes produced so
-// far, an arc from each floor's builder down to it, era bands behind the
-// rows, and the path a trace draws. Pure numbers in, numbers out; the
-// SVG is drawn from these elsewhere.
+// stage, a bar whose width grows with log10 of that stage's output, an
+// arc from each stage's builder down to it, era bands behind the rows,
+// and the seed's byte map. Pure numbers in, numbers out; the SVG is drawn
+// from these elsewhere.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
   towerLayout,
   eraSpans,
-  tracePoints,
   byteMapLayout,
   towerGeometry,
-  TowerKind,
 } from "../site/js/tower.js";
 
-// Four floors in build order, as floorViews returns them.
+// Four stages in build order, as stageViews returns them.
 const views = [
   {
     id: "seed",
@@ -92,40 +90,44 @@ test("a taller seed row pushes the rest down", () => {
   assert.equal(height, 220);
 });
 
-// The band is log-scaled bytes produced so far, from minBand to maxBand
-// at the last floor. The seed row is the seed itself, the bytes you
-// trust. The band never narrows going down.
-test("bands widen with log bytes produced, the seed row sized by trust", () => {
+// Each bar is that stage's own output on a log10 scale, so the largest
+// output gets maxBand and the rest are proportional to their log size.
+// The seed row is the bytes you trust. A stage that outputs less than the
+// one above it gets a narrower bar.
+test("bars are each stage's output on a log scale", () => {
   const { rows } = towerLayout(views, { trustBytes: 181, ...geometry });
-  assert.equal(rows.at(-1).band, geometry.maxBand);
-  for (let i = 1; i < rows.length; i += 1) {
-    assert.ok(
-      rows[i].band >= rows[i - 1].band,
-      `row ${i} narrower than ${i - 1}`,
-    );
-  }
-  // 181 bytes out of ~1e8 on a log scale: about 2.26 / 8.0 of the way.
-  const expected =
-    geometry.minBand +
-    (geometry.maxBand - geometry.minBand) *
-      (Math.log10(181) / Math.log10(1e8 + 5181));
-  assert.ok(Math.abs(rows[0].band - expected) < 1e-6);
-  assert.equal(rows[1].band, rows[0].band);
+  const share = (bytes) => Math.log10(bytes) / Math.log10(1e8);
+  const expected = [181, 181, 5000, 1e8].map(
+    (bytes) =>
+      geometry.minBand + (geometry.maxBand - geometry.minBand) * share(bytes),
+  );
+  rows.forEach((row, i) => {
+    assert.ok(Math.abs(row.bar - expected[i]) < 1e-9, `row ${i}`);
+  });
+  assert.equal(rows.at(-1).bar, geometry.maxBand);
+  assert.equal(rows[0].bar, rows[1].bar);
+
+  // A smaller stage after a bigger one is narrower: no running total.
+  const shrinking = [...views.slice(0, 3), { ...views[3], bytes: 1000 }];
+  const smaller = towerLayout(shrinking, { trustBytes: 181, ...geometry });
+  assert.ok(smaller.rows[3].bar < smaller.rows[2].bar);
 });
 
-// The core is the floor's own output on the same scale, never wider
-// than the band.
-test("the core is the floor's own output and fits inside the band", () => {
-  const { rows } = towerLayout(views, { trustBytes: 181, ...geometry });
-  for (const row of rows) {
-    assert.ok(row.core <= row.band);
-  }
-  assert.ok(rows[3].core > rows[2].core);
+// The layout hands back its scale, so gridlines can be drawn at sizes on
+// the same log axis as the bars.
+test("the layout's scale puts a size where its bar would end", () => {
+  const { rows, widthOf } = towerLayout(views, {
+    trustBytes: 181,
+    ...geometry,
+  });
+  assert.equal(widthOf(5000), rows[2].bar);
+  assert.equal(widthOf(1e8), geometry.maxBand);
+  assert.ok(widthOf(1024) < widthOf(1024 * 1024));
 });
 
-// Every floor but the seed gets an arc from its builder's row to its
+// Every stage but the seed gets an arc from its builder's row to its
 // own; a longer span bulges further into the arc space, never past it.
-test("each floor gets an arc from its builder", () => {
+test("each stage gets an arc from its builder", () => {
   const { arcs } = towerLayout(views, { trustBytes: 181, ...geometry });
   assert.deepEqual(
     arcs.map(({ from, to }) => [from, to]),
@@ -141,22 +143,12 @@ test("each floor gets an arc from its builder", () => {
   }
 });
 
-// Eras are contiguous runs of floors, in order of first appearance.
-test("eras are contiguous spans of floors", () => {
+// Eras are contiguous runs of stages, in order of first appearance.
+test("eras are contiguous spans of stages", () => {
   assert.deepEqual(eraSpans(views), [
     { era: "hex", first: 0, last: 1 },
     { era: "c", first: 2, last: 2 },
     { era: "gcc", first: 3, last: 3 },
-  ]);
-});
-
-// A trace is drawn through the rows of its floors, at each row's middle.
-test("a trace becomes points at the middle of each hop's row", () => {
-  const { rows } = towerLayout(views, { trustBytes: 181, ...geometry });
-  assert.deepEqual(tracePoints(rows, ["gcc", "hex0", "seed"], views), [
-    { index: 3, y: 140 },
-    { index: 1, y: 60 },
-    { index: 0, y: 20 },
   ]);
 });
 
@@ -186,7 +178,7 @@ test("the byte map fits every byte in the box with the largest cells", () => {
 test("the label column fits inside the tower at every width", () => {
   const labelWidth = 170;
   for (let width = 328; width <= 1100; width += 2) {
-    const g = towerGeometry(width, { kind: TowerKind.FULL, labelWidth });
+    const g = towerGeometry(width, { labelWidth });
     assert.ok(
       g.labelX + labelWidth <= width,
       `label runs to ${g.labelX + labelWidth} at width ${width}`,
@@ -194,12 +186,4 @@ test("the label column fits inside the tower at every width", () => {
     assert.ok(g.maxBand >= g.minBand * 10, `band ${g.maxBand} at ${width}`);
     assert.ok(g.seedRowHeight > g.rowHeight);
   }
-});
-
-// The compact tower has no labels, so its bands take the whole width
-// right of the arcs.
-test("the compact tower has no label column", () => {
-  const g = towerGeometry(160, { kind: TowerKind.COMPACT, labelWidth: 0 });
-  assert.equal(g.labels, false);
-  assert.ok(g.arcSpace + g.maxBand <= 160);
 });

@@ -1,9 +1,11 @@
 # Formatting first, then `nix flake check`, which runs everything the
 # flake defines, all of it offline:
 #
-#   checks.tests     the node suite: the hex0 assembler against every
+#   checks.tests     the node suite: the hex0 assembler against the
 #                    seed, the derivation graph analysis, and the
 #                    committed data's invariants
+#   checks.browser   the page in headless Chromium: hover, pin, and no
+#                    sideways scroll
 #   checks.site      the deployable tree assembles
 #   checks.data-pin  site/data describes the nixpkgs flake.lock pins
 #

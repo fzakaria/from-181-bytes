@@ -1,20 +1,20 @@
-// The floors of the climb, in build order. This is the hand-written half
+// The stages of the climb, in build order. This is the hand-written half
 // of the site's data: what each stage is, in words. Everything measured
 // (derivation, sizes, who built it, what else it built) comes from
-// site/data/chain-<system>.json, joined on `id`.
+// site/data/chain.json, joined on `id`.
 //
 //   attr       path under pkgs.minimal-bootstrap; gen-data evaluates it
 //   era        which band of the picture it sits in (ERAS below)
 //   role       seed | asm | link | cc | tool | lib, which decides who
 //              counts as having built what (tools/lib/chain.js)
-//   title      the name shown; `{cc}` is replaced by cc_x86 or cc_amd64
+//   title      the name shown
 //   writtenIn  the language of its own source
 //   reads      what it can turn into a binary, for the tools that do
 //   note       a few sentences, sourced from the nix expression or the
 //              upstream README it links
-//   ambient    true for the floors kaem.runCommand puts on every build's
+//   ambient    true for the stages kaem.runCommand puts on every build's
 //              PATH, so that being an input of a build says nothing
-//   milestone  set on the first floor that can do a new thing
+//   milestone  set on the first stage that can do a new thing
 //   link       where to read its source
 
 export const Role = Object.freeze({
@@ -26,7 +26,7 @@ export const Role = Object.freeze({
   LIB: "lib",
 });
 
-// The eras of the climb, named for what the floors in each one compile
+// The eras of the climb, named for what the stages in each one compile
 // or are compiled with. The picture draws each as a colour band.
 export const ERAS = Object.freeze([
   { id: "hex", label: "hex and assembly" },
@@ -46,7 +46,7 @@ const TINYCC = "https://repo.or.cz/w/tinycc.git";
 const MINIMAL_BOOTSTRAP =
   "https://github.com/NixOS/nixpkgs/tree/master/pkgs/os-specific/linux/minimal-bootstrap";
 
-export const floors = [
+export const stages = [
   {
     id: "seed",
     era: "hex",
@@ -55,7 +55,7 @@ export const floors = [
     title: "hex0-seed",
     writtenIn: "machine code",
     reads: "hex0",
-    note: "The one binary nixpkgs downloads instead of building. It reads two hex digits, writes one byte, skips comments, and repeats until the input ends.",
+    note: "The one binary nixpkgs downloads, not builds. It turns hex digit pairs into bytes.",
     link: "https://github.com/oriansj/bootstrap-seeds",
   },
   {
@@ -66,7 +66,7 @@ export const floors = [
     title: "hex0",
     writtenIn: "hex0",
     reads: "hex0",
-    note: "The seed's own source, assembled by the seed. hex0.nix gives this derivation the same hash as the seed, so the build fails unless the seed reproduces itself byte for byte.",
+    note: "The seed's source, assembled by the seed. Its hash is pinned to the seed's.",
     link: STAGE0,
   },
   {
@@ -77,7 +77,7 @@ export const floors = [
     title: "hex1",
     writtenIn: "hex0",
     reads: "hex1: hex plus one-character labels and relative jumps",
-    note: "Before hex1, every jump offset is counted by hand.",
+    note: "Adds labels. Before this, jump offsets are counted by hand.",
     milestone: "First labels",
     link: STAGE0,
   },
@@ -89,7 +89,7 @@ export const floors = [
     title: "hex2-0",
     writtenIn: "hex1",
     reads: "hex2: long labels and absolute addresses",
-    note: "Long labels and absolute addresses make hex2 a linker. This first build only targets the machine it runs on.",
+    note: "Long labels and absolute addresses: a linker.",
     link: STAGE0,
   },
   {
@@ -99,7 +99,7 @@ export const floors = [
     role: Role.TOOL,
     title: "catm",
     writtenIn: "hex2",
-    note: "cat without a shell: catm out in1 in2 writes the inputs into one file. Each later step glues an ELF header onto its program with it.",
+    note: "cat without a shell. Glues ELF headers onto programs.",
     link: STAGE0,
   },
   {
@@ -110,7 +110,7 @@ export const floors = [
     title: "M0",
     writtenIn: "hex2",
     reads: "M1 assembly: DEFINE names a byte string, and code uses the name",
-    note: "A one-architecture stand-in for the M1 macro assembler, so nobody has to write a cross-platform assembler in hex2.",
+    note: "A macro assembler for one architecture.",
     milestone: "First macros",
     link: STAGE0,
   },
@@ -119,10 +119,10 @@ export const floors = [
     era: "m2",
     attr: "stage0-posix.mescc-tools-boot.cc_arch",
     role: Role.CC,
-    title: "{cc}",
+    title: "cc_x86",
     writtenIn: "M1 assembly",
     reads: "a small subset of C",
-    note: "A C compiler written in assembly for one architecture. The stage0-posix README describes what it accepts as only an extremely basic form of C, enough for the next floor.",
+    note: "A C compiler in assembly, for a very basic C.",
     milestone: "First C compiler (a subset)",
     link: STAGE0,
   },
@@ -132,9 +132,9 @@ export const floors = [
     attr: "stage0-posix.mescc-tools-boot.M2",
     role: Role.CC,
     title: "M2-Planet",
-    writtenIn: "C (the subset {cc} accepts)",
+    writtenIn: "C (the subset cc_x86 accepts)",
     reads: "a larger subset of C",
-    note: "Compiles to M1 assembly. Everything up to GNU Mes is written in what M2-Planet accepts.",
+    note: "Compiles C to M1 assembly. Everything up to GNU Mes is written for it.",
     link: M2_PLANET,
   },
   {
@@ -144,7 +144,7 @@ export const floors = [
     role: Role.TOOL,
     title: "blood-elf-0",
     writtenIn: "C",
-    note: "Writes the DWARF stubs that give later binaries debug symbols. Built without them itself, hence the -0.",
+    note: "Writes DWARF stubs for debug symbols. Built without them, hence -0.",
     link: MESCC_TOOLS,
   },
   {
@@ -155,7 +155,7 @@ export const floors = [
     title: "M1-0",
     writtenIn: "C",
     reads: "M1 assembly, any architecture",
-    note: "The portable M1, in its bootstrap build. From here M0 is retired.",
+    note: "The portable M1 assembler. M0 retires.",
     link: MESCC_TOOLS,
   },
   {
@@ -166,7 +166,7 @@ export const floors = [
     title: "hex2-1",
     writtenIn: "C",
     reads: "hex2, any architecture",
-    note: "The portable hex2 linker, bootstrap build. From here catm and hex2-0 are retired.",
+    note: "The portable hex2 linker. catm and hex2-0 retire.",
     link: MESCC_TOOLS,
   },
   {
@@ -177,7 +177,7 @@ export const floors = [
     title: "M1",
     writtenIn: "C",
     reads: "M1 assembly",
-    note: "M1 rebuilt with the full M2libc, at full speed.",
+    note: "M1 rebuilt with the full M2libc.",
     link: MESCC_TOOLS,
   },
   {
@@ -198,7 +198,7 @@ export const floors = [
     role: Role.TOOL,
     title: "kaem",
     writtenIn: "C",
-    note: "A minimal shell. kaem is the builder of the derivations that follow, until bash 2.05b exists.",
+    note: "A minimal shell. It builds everything below until bash exists.",
     link: MESCC_TOOLS,
   },
   {
@@ -210,7 +210,7 @@ export const floors = [
     title: "mescc-tools",
     writtenIn: "C",
     reads: "C, through M2-Mesoplanet (a preprocessor and driver for M2-Planet)",
-    note: "M2-Planet, M1, hex2, blood-elf and M2-Mesoplanet in one output, built by kaem from the floors below.",
+    note: "M2-Planet, M1, hex2, blood-elf and M2-Mesoplanet in one output.",
     link: MESCC_TOOLS,
   },
   {
@@ -221,7 +221,7 @@ export const floors = [
     role: Role.TOOL,
     title: "mescc-tools-extra",
     writtenIn: "C",
-    note: "cp, chmod, mkdir, untar, ungz, sha256sum and the rest of a userland, each a small C program.",
+    note: "cp, mkdir, untar, sha256sum and more, each a small C program.",
     link: "https://github.com/oriansj/mescc-tools-extra",
   },
   {
@@ -232,7 +232,7 @@ export const floors = [
     title: "mes-m2",
     writtenIn: "C",
     reads: "Scheme, and through MesCC, C",
-    note: "GNU Mes compiled by M2-Planet: a Scheme interpreter. It runs MesCC, a C compiler written in Scheme, which emits M1 assembly for mescc-tools to assemble.",
+    note: "GNU Mes, a Scheme interpreter. It runs MesCC, a C compiler in Scheme.",
     milestone: "First Scheme",
     link: MES,
   },
@@ -243,7 +243,7 @@ export const floors = [
     role: Role.LIB,
     title: "Mes C library",
     writtenIn: "C",
-    note: "crt1, libc-mini, libmescc, libc and libc+tcc, compiled by MesCC on mes-m2.",
+    note: "The Mes C library, compiled by MesCC.",
     milestone: "First libc",
     link: MES,
   },
@@ -255,7 +255,7 @@ export const floors = [
     title: "mes",
     writtenIn: "C",
     reads: "Scheme, and through MesCC, C",
-    note: "GNU Mes again, this time compiled by MesCC.",
+    note: "GNU Mes again, compiled by MesCC.",
     link: MES,
   },
   {
@@ -266,7 +266,7 @@ export const floors = [
     title: "tcc (bootstrappable)",
     writtenIn: "C",
     reads: "C",
-    note: "A fork of the Tiny C Compiler that MesCC can compile. MesCC builds the first tcc; each later tcc on the path below is built by the one before it.",
+    note: "A TinyCC fork MesCC can compile.",
     link: TINYCC_BOOTSTRAPPABLE,
   },
   {
@@ -277,7 +277,7 @@ export const floors = [
     title: "tcc (mainline, Mes libc)",
     writtenIn: "C",
     reads: "C",
-    note: "Upstream TinyCC, compiled by the bootstrappable fork, still on the Mes C library. It compiles bash 2.05b, coreutils 5.0, tar, grep, awk and patch; make, sed and gzip came from the fork.",
+    note: "Upstream TinyCC. Builds bash 2.05b, coreutils, tar, grep, awk and patch.",
     link: TINYCC,
   },
   {
@@ -287,7 +287,7 @@ export const floors = [
     role: Role.LIB,
     title: "musl (built by tcc)",
     writtenIn: "C",
-    note: "musl, compiled by tcc. The path below goes through an intermediate musl and tcc pair first.",
+    note: "musl, compiled by tcc.",
     link: "https://musl.libc.org/",
   },
   {
@@ -298,7 +298,7 @@ export const floors = [
     title: "tcc (musl)",
     writtenIn: "C",
     reads: "C",
-    note: "tcc rebuilt against musl. It compiles binutils, bash 5 and the rest of the tools the GCC builds need.",
+    note: "tcc against musl. Builds binutils, bash 5 and GCC's tools.",
     link: TINYCC,
   },
   {
@@ -309,7 +309,7 @@ export const floors = [
     title: "GNU binutils",
     writtenIn: "C",
     reads: "GNU assembly and object files",
-    note: "as, ld, ar and friends, compiled by tcc.",
+    note: "as, ld, ar and friends.",
     link: "https://www.gnu.org/software/binutils/",
   },
   {
@@ -320,7 +320,7 @@ export const floors = [
     title: "GCC 4.6.4",
     writtenIn: "C",
     reads: "C",
-    note: "C only, compiled by tcc. GCC 4.8 moved GCC itself to C++, so the bootstrap needs a GCC from before that change.",
+    note: "C only. GCC 4.8 moved to C++, so the bootstrap starts before it.",
     milestone: "First GCC",
     link: "https://gcc.gnu.org/gcc-4.8/changes.html",
   },
@@ -331,7 +331,7 @@ export const floors = [
     role: Role.LIB,
     title: "musl 1.2.6",
     writtenIn: "C",
-    note: "musl again, now compiled by GCC.",
+    note: "musl again, compiled by GCC.",
     link: "https://musl.libc.org/",
   },
   {
@@ -342,7 +342,7 @@ export const floors = [
     title: "GCC 4.6.4 with C++",
     writtenIn: "C",
     reads: "C and C++",
-    note: "The same GCC with C++ enabled, compiled by the C-only one, against musl.",
+    note: "The same GCC with C++.",
     milestone: "First C++",
     link: MINIMAL_BOOTSTRAP,
   },
@@ -354,7 +354,7 @@ export const floors = [
     title: "GCC 10.4.0",
     writtenIn: "C++",
     reads: "C and C++",
-    note: "The first GCC here that is itself written in C++. The nix expression notes that 10.5.0 cannot be used here (GCC bug 110716).",
+    note: "The first GCC here written in C++. 10.5.0 fails (GCC bug 110716).",
     link: "https://gcc.gnu.org/bugzilla/show_bug.cgi?id=110716",
   },
   {
@@ -365,7 +365,7 @@ export const floors = [
     title: "GCC 16.2.0 (musl)",
     writtenIn: "C++",
     reads: "C and C++",
-    note: "Current GCC, compiled by GCC 10, against musl.",
+    note: "Current GCC, against musl.",
     link: MINIMAL_BOOTSTRAP,
   },
   {
@@ -375,7 +375,7 @@ export const floors = [
     role: Role.LIB,
     title: "glibc 2.44",
     writtenIn: "C",
-    note: "The GNU C library, compiled by GCC 16.",
+    note: "The GNU C library.",
     link: "https://www.gnu.org/software/libc/",
   },
   {
@@ -386,7 +386,7 @@ export const floors = [
     title: "GCC 16.2.0 (glibc)",
     writtenIn: "C++",
     reads: "C and C++",
-    note: "GCC 16 once more, compiled by the musl GCC 16, now targeting glibc.",
+    note: "GCC 16 again, targeting glibc.",
     link: "https://github.com/NixOS/nixpkgs/pull/479322",
   },
   {
@@ -396,18 +396,7 @@ export const floors = [
     role: Role.TOOL,
     title: "gcc-wrapper-16.2.0",
     writtenIn: "shell",
-    note: "The wrapper around GCC 16 for glibc. pkgs/stdenv/linux/stage0.nix hands this wrapper and glibc to the standard environment as its first compiler and C library. Its build closure is every derivation on this page.",
+    note: "What stage0.nix hands the standard environment, with glibc. Its build closure is this whole page.",
     link: MINIMAL_BOOTSTRAP,
   },
 ];
-
-// The C compiler floor is cc_x86 on i686 and cc_amd64 on x86_64.
-const CC_NAME = Object.freeze({
-  "i686-linux": "cc_x86",
-  "x86_64-linux": "cc_amd64",
-});
-
-// A floor's text with `{cc}` filled in for the system shown.
-export function fill(text, system) {
-  return text.replaceAll("{cc}", CC_NAME[system] ?? "cc_arch");
-}

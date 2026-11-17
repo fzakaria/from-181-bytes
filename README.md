@@ -3,16 +3,17 @@
 nixpkgs' full-source bootstrap, from the 181 byte hex0 seed to GCC 16.2.0.
 
 The page opens on the seed itself: every byte in a grid beside the line of
-commented hex0 source that produced it. The browser assembles that source
+highlighted hex0 source that produced it. The browser assembles that source
 and checks it against the seed before showing the mapping. Below it the
-chain is drawn as a tower, one row per stage in build order, widening on a
-log scale as the bytes produced climb from 181 to 1.6 GiB, with an arc from
-each stage to the stage that built it. "Who built you?" picks any file in
-the final compiler's closure and draws its ancestry down the same tower to
-the seed.
+`i686-linux` chain is drawn as a tower, one row per stage in build order,
+each bar as wide as the stage's output on a log scale and shaded with the
+byte entropy of its largest file, with an arc from each stage to the stage
+that built it. Click a stage to pin it; the URL (`#stage-gcc46`) keeps the
+pin.
 
 At the nixpkgs revision in `flake.lock`, this chain is where the standard
-environment starts on `i686-linux` and `x86_64-linux`
+environment starts on `i686-linux`, and the same chain from a 229 byte
+AMD64 seed is where it starts on `x86_64-linux`
 (`pkgs/stdenv/linux/stage0.nix`). Other Linux platforms still start from a
 prebuilt bootstrap-tools tarball.
 
@@ -21,7 +22,7 @@ prebuilt bootstrap-tools tarball.
 ```console
 $ nix build                # the static site, ./result
 $ nix run .#serve          # build it and serve it on http://127.0.0.1:8181/
-$ nix flake check          # tests, the site assembles, data matches the pin
+$ nix flake check          # unit and browser tests, the site, the data pin
 $ nix fmt                  # before committing
 ```
 
@@ -40,10 +41,11 @@ repository root:
 $ nix run .#gen-data
 ```
 
-It evaluates `pkgs.minimal-bootstrap` at the locked nixpkgs for both
-systems, dumps the derivation graph under the last stage with
-`nix derivation show -r`, and asks cache.nixos.org for every output's NAR
-info and file listing. Nothing in the chain is built. Set `GEN_DATA_WORK` to
+It evaluates `pkgs.minimal-bootstrap` at the locked nixpkgs for
+`i686-linux`, dumps the derivation graph under the last stage with
+`nix derivation show -r`, asks cache.nixos.org for every output's NAR info
+and file listing, and fetches each stage's largest output file for its
+texture. Nothing in the chain is built. Set `GEN_DATA_WORK` to
 a directory to keep what it downloads, so `tools/build-data.mjs` can be rerun
 offline. Bumping nixpkgs means `nix flake update` and then `nix run
 .#gen-data`; `checks.data-pin` fails until both are done. See
@@ -53,12 +55,17 @@ number means, and [docs/design.md](docs/design.md) for the page.
 ## Layout
 
 `site/` is the static site: vanilla ES modules, no bundler and no runtime
-dependencies. `site/js/floors.js` is the hand-written description of each
+dependencies. `site/js/stages.js` is the hand-written description of each
 stage; everything measured is in `site/data/`. `tools/` turns what
 gen-data collected into that data. `nix/` holds the flake's pieces:
 `site.nix` assembles the deployable tree, `gen-data.nix` is the generator,
 `chain.nix` and `seed.nix` are what it evaluates, `serve.nix` is the local
-server and `formatter.nix` is `nix fmt`. `tests/` is the node suite.
+server and `formatter.nix` is `nix fmt`. `tests/` is the node suite;
+`tests/browser/` drives the page in headless Chromium:
+
+```console
+$ nix shell nixpkgs#nodejs nixpkgs#chromium -c node --test tests/browser/*.test.mjs
+```
 
 ## Credits
 

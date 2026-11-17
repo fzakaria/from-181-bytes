@@ -17,22 +17,3 @@ export function el(tag, attrs = {}, ...children) {
   );
   return node;
 }
-
-// Replace the tabs in `container` with one button per option and call
-// `choose` with the picked value. Returns a function that marks a value
-// selected without calling `choose`.
-export function tabs(container, options, choose) {
-  const buttons = options.map(({ value, label }) =>
-    el(
-      "button",
-      { role: "tab", "aria-selected": "false", onclick: () => choose(value) },
-      label,
-    ),
-  );
-  container.replaceChildren(...buttons);
-  return (selected) => {
-    options.forEach(({ value }, index) => {
-      buttons[index].setAttribute("aria-selected", String(value === selected));
-    });
-  };
-}

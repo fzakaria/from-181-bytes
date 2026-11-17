@@ -20,6 +20,11 @@
   --era-tcc: #2a74b8;
   --era-gcc: #c0465f;
   --era-cxx: #4f5fd0;
+  --syn-hex: #1a1a1a;
+  --syn-comment: #7a7a7a;
+  --syn-mnemonic: #2a6aa8;
+  --syn-ref: #a8552a;
+  --syn-label: #7a46b8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -41,6 +46,11 @@
     --era-tcc: #62a8ec;
     --era-gcc: #ec7590;
     --era-cxx: #8f9cff;
+    --syn-hex: #e6e6e6;
+    --syn-comment: #8a8a8a;
+    --syn-mnemonic: #7fb4ea;
+    --syn-ref: #e8a070;
+    --syn-label: #c0a0f0;
   }
 }
 * {
@@ -111,12 +121,31 @@ a {
 .lede {
   font-weight: 600;
 }
+/* Prose is short and set small, so the seed and the tower carry the
+   page. */
 .intro,
-#climb > p,
-#who > p,
-.roots p,
+.roots,
 .credits {
-  max-width: 46rem;
+  max-width: 44rem;
+  font-size: 14px;
+}
+
+/* The owner's note at the top, signed in small type. */
+.note {
+  max-width: 44rem;
+  margin: 0.8rem 0 1rem;
+  padding: 0 0 0 0.9rem;
+  border-left: 3px solid var(--era-hex);
+}
+.note blockquote {
+  margin: 0;
+  font-size: 15px;
+  font-style: italic;
+}
+.note figcaption {
+  margin-top: 0.2rem;
+  font-size: 12px;
+  color: var(--muted);
 }
 code {
   font:
@@ -126,34 +155,6 @@ code {
   border-radius: 3px;
   padding: 0.1rem 0.3rem;
   overflow-wrap: anywhere;
-}
-
-/* Tabs for the architecture and the system, the same as seenix's lanes.
-   On a narrow screen they wrap onto a second row rather than scroll. */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-  margin: 0.4rem 0 0.8rem;
-}
-.tabs button {
-  flex: 0 1 auto;
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 0.4rem 0.8rem;
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-.tabs button[aria-selected="true"] {
-  color: var(--fg);
-  border-bottom-color: var(--accent);
-}
-@media (max-width: 40rem) {
-  .tabs button {
-    padding: 0.35rem 0.55rem;
-  }
 }
 
 /* The seed: a 16-column grid of bytes beside the hex0 source. The grid's
@@ -321,32 +322,7 @@ code {
     600 1.15rem/1.2 ui-monospace,
     monospace;
 }
-.milestones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  width: 100%;
-  margin: 0.2rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.milestones button {
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.milestones button.reached {
-  border-color: var(--accent);
-  color: var(--fg);
-  background: var(--tint-a);
-}
-
-/* The picture beside the card for the floor in view. On a phone the card
+/* The picture beside the card for the stage in view. On a phone the card
    becomes a sheet pinned to the bottom of the screen. */
 .climb-layout {
   display: grid;
@@ -359,10 +335,11 @@ code {
   margin: 0;
   min-width: 0;
 }
-.floor-card {
+.stage-card {
+  font-size: 13.5px;
   position: sticky;
-  top: 9rem;
-  max-height: calc(100vh - 10rem);
+  top: 6rem;
+  max-height: calc(100vh - 7rem);
   overflow: auto;
   padding: 0.8rem 1rem;
   background: var(--bg);
@@ -372,8 +349,9 @@ code {
 @media (max-width: 52rem) {
   .climb-layout {
     grid-template-columns: minmax(0, 1fr);
+    padding-bottom: min(40vh, 21rem);
   }
-  .floor-card {
+  .stage-card {
     display: none;
     position: fixed;
     left: 0;
@@ -385,20 +363,18 @@ code {
     border-radius: 10px 10px 0 0;
     box-shadow: 0 -4px 16px rgb(0 0 0 / 0.15);
   }
-  .floor-card.in-view {
+  .stage-card.in-view {
     display: block;
-  }
-  .tower-wrap {
-    padding-bottom: min(40vh, 21rem);
   }
   .tower .title {
     font-size: 12px;
   }
 
-  /* Compact gauges: four small values on one line, the milestones as
-     small chips that wrap. */
+  /* Compact gauges: four small values in four equal columns. */
   .gauges {
-    gap: 0.2rem 0.9rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.2rem 0.5rem;
     padding: 0.4rem 0;
   }
   .gauge-label {
@@ -407,15 +383,8 @@ code {
   .gauge-value {
     font-size: 0.9rem;
   }
-  .milestones {
-    gap: 0.2rem;
-  }
-  .milestones button {
-    padding: 0 0.4rem;
-    font-size: 11px;
-  }
 }
-.floor-card h3 {
+.stage-card h3 {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -426,13 +395,13 @@ code {
   letter-spacing: 0;
   color: var(--fg);
 }
-.floor-card .floor-number {
+.stage-card .stage-number {
   font:
     12px ui-monospace,
     monospace;
   color: var(--muted);
 }
-.floor-card p {
+.stage-card p {
   margin: 0.4rem 0;
 }
 .card-nav {
@@ -453,7 +422,7 @@ code {
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.05rem 0.9rem;
   margin: 0.4rem 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 .facts dt {
   color: var(--muted);
@@ -478,8 +447,30 @@ details.also p {
   color: var(--muted);
 }
 
-/* The tower. Era colours are one hue per era at similar weight; bands
-   are the era at low opacity, cores at full. */
+/* The tower sits on a dark panel in both themes, so the era colours and
+   the textures carry. The panel has its own tokens: the dark theme's era
+   colours, a light foreground and a muted grey. */
+.tower-wrap {
+  --panel-bg: #121419;
+  --panel-fg: #e8e8ea;
+  --panel-muted: #8d94a0;
+  --panel-line: #2c3039;
+  --panel-accent: #8fa3ff;
+  --era-hex: #e0904a;
+  --era-m2: #5cc08c;
+  --era-mes: #b18cf0;
+  --era-tcc: #62a8ec;
+  --era-gcc: #ec7590;
+  --era-cxx: #8f9cff;
+  padding: 0.7rem 0.6rem 0.4rem;
+  background: var(--panel-bg);
+  border-radius: 8px;
+}
+.legend {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--panel-muted);
+}
 .tower {
   display: block;
   max-width: 100%;
@@ -487,14 +478,23 @@ details.also p {
   font-family: system-ui, sans-serif;
 }
 .tower .era-bg {
-  opacity: 0.07;
+  opacity: 0.09;
 }
 .tower .era-label {
   font-size: 11px;
   font-weight: 600;
   paint-order: stroke;
-  stroke: var(--bg);
+  stroke: var(--panel-bg);
   stroke-width: 4px;
+}
+.tower .gridline {
+  stroke: var(--panel-line);
+  stroke-dasharray: 2 4;
+}
+.tower .grid-label {
+  font-size: 10px;
+  fill: var(--panel-muted);
+  text-anchor: middle;
 }
 .tower .hit {
   fill: transparent;
@@ -503,250 +503,173 @@ details.also p {
 .tower .row:focus {
   outline: none;
 }
-.tower .row:focus .hit,
-.tower .row.focus .hit {
-  fill: var(--tint-a);
+.tower .row:focus-visible .hit {
+  fill: rgb(255 255 255 / 0.05);
 }
 .tower .connector {
-  stroke: var(--line);
+  stroke: var(--panel-line);
   stroke-width: 1;
 }
-.tower .band {
-  opacity: 0.28;
+.tower .seed-frame {
+  fill-opacity: 0.2;
+}
+.tower .outline {
+  fill: none;
+  stroke: none;
 }
 .tower .source {
-  fill: var(--muted);
-  opacity: 0.45;
+  fill: var(--panel-muted);
+  opacity: 0.6;
 }
 .tower .title {
   font-size: 13px;
   font-weight: 600;
-  fill: var(--fg);
+  fill: var(--panel-fg);
 }
-.tower .size {
+.tower .size,
+.tower .milestone {
   font-size: 11px;
-  fill: var(--muted);
+  fill: var(--panel-muted);
+}
+.tower .milestone {
+  font-style: italic;
 }
 .tower .arc {
   fill: none;
-  stroke: var(--muted);
+  stroke: var(--panel-muted);
   stroke-width: 1;
-  opacity: 0.45;
-}
-.tower .arc.focus {
-  stroke: var(--accent);
-  stroke-width: 2.5;
-  opacity: 1;
-}
-.tower.focused .row:not(.focus):not(.builder):not(.related) .core {
-  opacity: 0.55;
-}
-.tower .row.builder .hit {
-  fill: var(--tint-b);
-  stroke: var(--accent);
-  stroke-dasharray: 3 3;
-}
-.tower .row.related .connector {
-  stroke: var(--accent);
-}
-.tower .trace-line {
-  fill: none;
-  stroke: var(--hot-line);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.tower .arc.hop {
-  stroke: var(--hot-line);
-  stroke-width: 3;
-  opacity: 1;
-}
-.tower.tracing .row.hop .core {
-  stroke: var(--hot-line);
-  stroke-width: 2;
-}
-.tower.compact.tracing .row:not(.hop) {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
-.era-hex .band,
-.era-hex .core,
+/* Highlighting stays light: the stage shown is outlined, its builder
+   outlined dashed, and the arc between them tinted. A pinned stage gets
+   a marker at its left edge and an accent title. */
+.tower .row.focus .outline,
+.tower .row.focus .seed-frame {
+  stroke: var(--panel-fg);
+  stroke-width: 1.5;
+}
+.tower .row.builder .outline,
+.tower .row.builder .seed-frame {
+  stroke: var(--panel-fg);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+.tower .arc.focus {
+  stroke: var(--panel-accent);
+  opacity: 1;
+  stroke-width: 1.5;
+}
+.tower .pin-mark {
+  fill: transparent;
+}
+.tower .row.pinned .pin-mark {
+  fill: var(--panel-accent);
+}
+.tower .row.pinned .title {
+  fill: var(--panel-accent);
+}
+
+.era-hex .bar,
+.era-hex .slice,
 .era-hex .byte,
+.era-hex .seed-frame,
 .era-hex.era-bg,
 .era-text-hex {
   fill: var(--era-hex);
 }
-.era-m2 .band,
-.era-m2 .core,
+.era-m2 .bar,
+.era-m2 .slice,
 .era-m2 .byte,
+.era-m2 .seed-frame,
 .era-m2.era-bg,
 .era-text-m2 {
   fill: var(--era-m2);
 }
-.era-mes .band,
-.era-mes .core,
+.era-mes .bar,
+.era-mes .slice,
 .era-mes .byte,
+.era-mes .seed-frame,
 .era-mes.era-bg,
 .era-text-mes {
   fill: var(--era-mes);
 }
-.era-tcc .band,
-.era-tcc .core,
+.era-tcc .bar,
+.era-tcc .slice,
 .era-tcc .byte,
+.era-tcc .seed-frame,
 .era-tcc.era-bg,
 .era-text-tcc {
   fill: var(--era-tcc);
 }
-.era-gcc .band,
-.era-gcc .core,
+.era-gcc .bar,
+.era-gcc .slice,
 .era-gcc .byte,
+.era-gcc .seed-frame,
 .era-gcc.era-bg,
 .era-text-gcc {
   fill: var(--era-gcc);
 }
-.era-cxx .band,
-.era-cxx .core,
+.era-cxx .bar,
+.era-cxx .slice,
 .era-cxx .byte,
+.era-cxx .seed-frame,
 .era-cxx.era-bg,
 .era-text-cxx {
   fill: var(--era-cxx);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .tower .core,
   .tower .arc,
-  .tower .hit {
+  .tower .outline,
+  .tower .pin-mark {
     transition:
       opacity 0.15s,
-      fill 0.15s,
-      stroke-width 0.15s;
+      stroke 0.15s,
+      fill 0.15s;
   }
 }
 
-/* Who built you: the file picker beside the trace. */
-.who-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
+/* Syntax colours for the hex0 listing: bytes in the text colour, the
+   mnemonic after ';' in blue, label references in orange, label
+   definitions in purple, comments grey. */
+.tok-hex {
+  color: var(--syn-hex);
 }
-@media (max-width: 52rem) {
-  .who-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.tok-mnemonic {
+  color: var(--syn-mnemonic);
 }
-.who-files {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.tok-ref {
+  color: var(--syn-ref);
 }
-select,
-input {
-  width: 100%;
-  padding: 0.4rem 0.5rem;
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font:
-    13px/1.5 ui-monospace,
-    monospace;
+.tok-label {
+  color: var(--syn-label);
+  font-weight: 600;
 }
-.who-list {
-  max-height: 24rem;
-  overflow: auto;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font:
-    12px/1.5 ui-monospace,
-    monospace;
-}
-.who-list button {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 0.15rem 0.5rem;
-  border: 0;
-  background: none;
-  color: var(--fg);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.who-list button:hover,
-.who-list button.active {
-  background: var(--tint-a);
-}
-.who-list .path {
-  overflow-wrap: anywhere;
-}
-/* A symlink's size column is its target, a whole store path; it wraps
-   rather than pushing the row wider than the list. */
-.who-list .size {
-  flex: 0 1 auto;
-  color: var(--muted);
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-.who-picture {
-  display: grid;
-  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-.who-mini {
-  min-width: 0;
-}
-.who-trace {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-wrap: anywhere;
-}
-.who-trace li {
-  position: relative;
-  padding: 0 0 0.9rem 1.4rem;
-  border-left: 2px solid var(--line);
-  margin-left: 0.4rem;
-}
-.who-trace li::before {
-  content: "";
-  position: absolute;
-  left: -0.4rem;
-  top: 0.35rem;
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  background: var(--accent);
-}
-.who-trace li.trace-actions::before {
-  display: none;
-}
-.trace-actions button {
-  padding: 0.2rem 0.6rem;
-  background: var(--code-bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  color: var(--fg);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.who-trace li:last-child {
-  border-left-color: transparent;
-}
-.who-trace .via {
-  font-size: 13px;
+.tok-comment {
+  color: var(--syn-comment);
 }
 
 .credits li {
   margin: 0.3rem 0;
 }
+/* The footer, as on nixpkgs-higher-lower: centred, small and muted. */
 footer {
   margin-top: 2rem;
   border-top: 1px solid var(--line);
+  padding-top: 0.6rem;
+  font-size: 13px;
+  text-align: center;
+}
+footer p {
+  margin: 0.3rem 0;
+}
+
+/* A store path is a single token; keep it on one line and shrink it to
+   fit a phone. */
+#store code {
+  font-size: min(12px, 2.6vw);
+  white-space: nowrap;
+  background: none;
+  padding: 0;
 }

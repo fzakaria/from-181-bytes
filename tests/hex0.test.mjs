@@ -1,8 +1,9 @@
 // Tests the hex0 assembler in site/js/hex0.js, which the seed explorer uses
 // to tie every seed byte to the line of source that produced it. The small
-// cases pin the format's rules on hand-written input; the seed cases run the
-// real hex0 source for every architecture in site/data/seeds and require
-// the output to equal the seed nixpkgs fetches, byte for byte.
+// cases pin the format's rules on hand-written input; the seed case runs the
+// real x86 hex0 source in site/data/seeds and requires the output to equal
+// the seed nixpkgs fetches, byte for byte. The listing helpers split, hang
+// and colour source lines for the page.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -16,6 +17,8 @@ import {
   lineStops,
   lineSegments,
   hangColumn,
+  tokenizeSegment,
+  Token,
 } from "../site/js/hex0.js";
 
 const seedsDir = fileURLToPath(new URL("../site/data/seeds/", import.meta.url));
@@ -133,6 +136,68 @@ test("a line splits into hex, mnemonic and comment segments", () => {
   assert.deepEqual(lineSegments(""), []);
 });
 
+// Syntax highlighting works segment by segment, as lineSegments cuts
+// them. In the hex, digit runs are bytes and the rest is plain. After ';'
+// the words are a mnemonic, except label references (!loop, @next_byte,
+// $output, ^~Read_byte). After '#' everything is comment, except a label
+// definition (#:ELF_base, # :_start). Adjacent tokens of one kind merge,
+// and the tokens join back into the segment.
+test("segments tokenize into hex, mnemonics, references, comments, labels", () => {
+  const T = Token;
+  assert.deepEqual(tokenizeSegment("    7F 45 4C 46"), [
+    { kind: T.PLAIN, text: "    " },
+    { kind: T.HEX, text: "7F" },
+    { kind: T.PLAIN, text: " " },
+    { kind: T.HEX, text: "45" },
+    { kind: T.PLAIN, text: " " },
+    { kind: T.HEX, text: "4C" },
+    { kind: T.PLAIN, text: " " },
+    { kind: T.HEX, text: "46" },
+  ]);
+  assert.deepEqual(tokenizeSegment("; jne !cont"), [
+    { kind: T.MNEMONIC, text: "; jne " },
+    { kind: T.REF, text: "!cont" },
+  ]);
+  assert.deepEqual(tokenizeSegment("; ^~Read_byte CALL"), [
+    { kind: T.MNEMONIC, text: "; " },
+    { kind: T.REF, text: "^~Read_byte" },
+    { kind: T.MNEMONIC, text: " CALL" },
+  ]);
+  assert.deepEqual(tokenizeSegment("; $output DATA_OFFSET 40 00"), [
+    { kind: T.MNEMONIC, text: "; " },
+    { kind: T.REF, text: "$output" },
+    { kind: T.MNEMONIC, text: " DATA_OFFSET 40 00" },
+  ]);
+  assert.deepEqual(tokenizeSegment("#:ELF_base"), [
+    { kind: T.COMMENT, text: "#" },
+    { kind: T.LABEL, text: ":ELF_base" },
+  ]);
+  assert.deepEqual(tokenizeSegment("# :_start ; (0x804804C)"), [
+    { kind: T.COMMENT, text: "# " },
+    { kind: T.LABEL, text: ":_start" },
+    { kind: T.COMMENT, text: " ; (0x804804C)" },
+  ]);
+  // A colon inside a word or before a space is not a label, and an '@'
+  // in a comment is not a reference.
+  assert.deepEqual(
+    tokenizeSegment("# SPDX-FileCopyrightText: 2023 <andrius@stikonas.eu>"),
+    [
+      {
+        kind: T.COMMENT,
+        text: "# SPDX-FileCopyrightText: 2023 <andrius@stikonas.eu>",
+      },
+    ],
+  );
+  assert.deepEqual(tokenizeSegment(""), []);
+
+  for (const line of ["\t58   ; pop_eax   # Get the number", "#:loop"]) {
+    for (const segment of lineSegments(expandTabs(line))) {
+      const tokens = tokenizeSegment(segment.text);
+      assert.equal(tokens.map(({ text }) => text).join(""), segment.text);
+    }
+  }
+});
+
 // A wrapped line hangs from the rightmost stop that still leaves room for
 // the rest to read; with no such stop it hangs from column 0.
 test("the hang is the rightmost stop that leaves room", () => {
@@ -145,23 +210,23 @@ test("the hang is the rightmost stop that leaves room", () => {
   assert.equal(hangColumn([], 80, 20), 0);
 });
 
-// The real thing: for every architecture, assembling the stage0 hex0 source
-// reproduces the seed binary exactly, and every seed byte maps to a line
-// that is not a comment.
-const index = JSON.parse(readFileSync(`${seedsDir}index.json`, "utf8"));
-for (const arch of index.arches) {
-  test(`hex0_${arch.name}.hex0 reproduces the ${arch.size} byte ${arch.name} seed`, () => {
-    const seed = readFileSync(`${seedsDir}${arch.name}.bin`);
-    const source = readFileSync(`${seedsDir}${arch.source}`, "utf8");
-    const { bytes, lines } = assemble(source);
+// The real thing: assembling the stage0 hex0 source reproduces the x86
+// seed nixpkgs fetches exactly, and every seed byte maps to a line that
+// is not a comment.
+const { seed: entry } = JSON.parse(
+  readFileSync(`${seedsDir}index.json`, "utf8"),
+);
+test(`${entry.source} reproduces the ${entry.size} byte ${entry.arch} seed`, () => {
+  const seed = readFileSync(`${seedsDir}${entry.arch}.bin`);
+  const source = readFileSync(`${seedsDir}${entry.source}`, "utf8");
+  const { bytes, lines } = assemble(source);
 
-    assert.equal(seed.length, arch.size);
-    assert.equal(bytes.length, seed.length);
-    assert.deepEqual(Buffer.from(bytes), seed);
+  assert.equal(seed.length, entry.size);
+  assert.equal(bytes.length, seed.length);
+  assert.deepEqual(Buffer.from(bytes), seed);
 
-    const text = source.split("\n");
-    for (const line of lines) {
-      assert.match(describeLine(text[line]).hex, /^[0-9A-Fa-f]/);
-    }
-  });
-}
+  const text = source.split("\n");
+  for (const line of lines) {
+    assert.match(describeLine(text[line]).hex, /^[0-9A-Fa-f]/);
+  }
+});

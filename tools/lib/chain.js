@@ -1,10 +1,10 @@
-// Graph analysis over the parsed derivation graph: which floor built each
+// Graph analysis over the parsed derivation graph: which stage built each
 // derivation, along which path, and how much the chain has produced by
-// each floor.
+// each stage.
 
 import { Kind } from "./derivations.js";
 
-// When several floors sit on a derivation's frontier, the one that built
+// When several stages sit on a derivation's frontier, the one that built
 // it is the one doing the most translating. A C compiler beats the
 // assembler it emits code for, which beats the linker after it, which
 // beats a shell or a library that happened to be on hand. The seed ranks
@@ -35,12 +35,12 @@ export function closure(graph, start) {
   return seen;
 }
 
-// The floors a derivation reaches first: a breadth-first walk down its
-// inputs that passes through anything that is not a floor and stops at
-// every floor it meets. Returns Map<floorKey, path>, where the path runs
-// from the input of `start` the walk left by down to the floor itself,
+// The stages a derivation reaches first: a breadth-first walk down its
+// inputs that passes through anything that is not a stage and stops at
+// every stage it meets. Returns Map<stageKey, path>, where the path runs
+// from the input of `start` the walk left by down to the stage itself,
 // and is the shortest such path.
-export function frontier(graph, start, floorKeys) {
+export function frontier(graph, start, stageKeys) {
   const reached = new Map();
   const parent = new Map([[start, null]]);
   const queue = [start];
@@ -48,8 +48,8 @@ export function frontier(graph, start, floorKeys) {
   while (queue.length > 0) {
     const key = queue.shift();
 
-    // A floor ends this branch of the walk; record how we got here.
-    if (key !== start && floorKeys.has(key)) {
+    // A stage ends this branch of the walk; record how we got here.
+    if (key !== start && stageKeys.has(key)) {
       const path = [];
       for (let step = key; step !== start; step = parent.get(step)) {
         path.unshift(step);
@@ -69,10 +69,10 @@ export function frontier(graph, start, floorKeys) {
   return reached;
 }
 
-// The floors a derivation used directly: floors among its inputs, and
-// floors among the inputs of its builder scripts, which is where
+// The stages a derivation used directly: stages among its inputs, and
+// stages among the inputs of its builder scripts, which is where
 // kaem.runCommand names its tools. Other builds are not looked through.
-export function directFloors(graph, start, floorKeys) {
+export function directStages(graph, start, stageKeys) {
   const found = new Set();
   const seen = new Set([start]);
   const stack = [start];
@@ -82,7 +82,7 @@ export function directFloors(graph, start, floorKeys) {
         continue;
       }
       seen.add(input);
-      if (floorKeys.has(input)) {
+      if (stageKeys.has(input)) {
         found.add(input);
       } else if (graph.get(input).kind === Kind.SCRIPT) {
         stack.push(input);
@@ -102,13 +102,13 @@ const OTHER_STEM_COST = 4;
 // The first word of a derivation name: tinycc, gcc, M2, mes, hex2.
 const stem = (name) => name.split(/[-._]/)[0].toLowerCase();
 
-// The derivations between `start` and the floor `target` that built it,
-// along the cheapest path that touches no other floor. Cheapest favours
+// The derivations between `start` and the stage `target` that built it,
+// along the cheapest path that touches no other stage. Cheapest favours
 // derivations sharing the start's or the target's stem, so it follows the
 // compiler's own lineage (tinycc-boot3, boot2, ...) rather than the
 // shortest route through a tool the build also used. Returns the keys
 // strictly between start and target, nearest the start first.
-export function compilePath(graph, start, target, floorKeys) {
+export function compilePath(graph, start, target, stageKeys) {
   const want = new Set([
     stem(graph.get(start).name),
     stem(graph.get(target).name),
@@ -132,7 +132,7 @@ export function compilePath(graph, start, target, floorKeys) {
       break;
     }
     done.add(key);
-    if (key !== start && floorKeys.has(key)) {
+    if (key !== start && stageKeys.has(key)) {
       continue;
     }
     for (const input of graph.get(key)?.inputs ?? []) {
@@ -157,26 +157,26 @@ export function compilePath(graph, start, target, floorKeys) {
   return path;
 }
 
-// Pick the floor that built a derivation out of its frontier. Highest
-// role priority first. Within a priority, a floor the derivation uses
+// Pick the stage that built a derivation out of its frontier. Highest
+// role priority first. Within a priority, a stage the derivation uses
 // directly, as an input or named in its builder script, beats one reached
 // only through another build: that one built a tool, not this. An
-// ambient floor, one on every build's PATH, is never direct. Then the
-// latest floor in build order.
-function pickBuilder(graph, reached, floorByKey) {
+// ambient stage, one on every build's PATH, is never direct. Then the
+// latest stage in build order.
+function pickBuilder(graph, reached, stageByKey) {
   let best = null;
   for (const [key, path] of reached) {
-    const floor = floorByKey.get(key);
+    const stage = stageByKey.get(key);
     const via = path.slice(0, -1);
     const candidate = {
-      floor: floor.id,
-      priority: ROLE_PRIORITY[floor.role],
+      stage: stage.id,
+      priority: ROLE_PRIORITY[stage.role],
       direct:
-        !floor.ambient &&
+        !stage.ambient &&
         via.every((step) => graph.get(step).kind === Kind.SCRIPT)
           ? 1
           : 0,
-      rank: floor.rank,
+      rank: stage.rank,
       via,
     };
     if (best !== null && compareCandidates(candidate, best) <= 0) {
@@ -187,7 +187,7 @@ function pickBuilder(graph, reached, floorByKey) {
   if (best === null) {
     return undefined;
   }
-  return { floor: best.floor, via: best.via };
+  return { stage: best.stage, via: best.via };
 }
 
 // Order builder candidates: priority, then directness, then rank.
@@ -195,25 +195,25 @@ function compareCandidates(a, b) {
   return a.priority - b.priority || a.direct - b.direct || a.rank - b.rank;
 }
 
-// Analyse the graph against the floors, given in build order as
+// Analyse the graph against the stages, given in build order as
 // { id, role, key, ambient }. bytesOf(node) is the size a node counts for.
 //
 // Returns:
-//   builtBy     Map<key, { floor, via }> for every built derivation that
-//               has a floor below it; via lists the derivations between
-//               it and that floor
-//   compiled    Map<floorId, key[]>: the derivations that are not floors
-//               and that each floor built
-//   cumulative  Map<floorId, { built, builtCount, source, sourceCount }>:
+//   builtBy     Map<key, { stage, via }> for every built derivation that
+//               has a stage below it; via lists the derivations between
+//               it and that stage
+//   compiled    Map<stageId, key[]>: the derivations that are not stages
+//               and that each stage built
+//   cumulative  Map<stageId, { built, builtCount, source, sourceCount }>:
 //               bytes and derivations produced, and source fetched, by
-//               the time each floor is done, every derivation counted once
-export function analyse(graph, floors, bytesOf) {
-  const floorByKey = new Map(
-    floors.map((floor, rank) => [floor.key, { ...floor, rank }]),
+//               the time each stage is done, every derivation counted once
+export function analyse(graph, stages, bytesOf) {
+  const stageByKey = new Map(
+    stages.map((stage, rank) => [stage.key, { ...stage, rank }]),
   );
-  const floorKeys = new Set(floorByKey.keys());
+  const stageKeys = new Set(stageByKey.keys());
   const seedKeys = new Set(
-    floors.filter((floor) => floor.role === "seed").map((f) => f.key),
+    stages.filter((stage) => stage.role === "seed").map((f) => f.key),
   );
 
   // Who built what. Fetched sources and builder scripts are not compiled
@@ -225,35 +225,35 @@ export function analyse(graph, floors, bytesOf) {
     }
     const builder = pickBuilder(
       graph,
-      frontier(graph, node.key, floorKeys),
-      floorByKey,
+      frontier(graph, node.key, stageKeys),
+      stageByKey,
     );
     if (!builder) {
       continue;
     }
     // Show the compiler's lineage between the two, not the shortest path.
-    const target = floors.find((floor) => floor.id === builder.floor).key;
+    const target = stages.find((stage) => stage.id === builder.stage).key;
     builtBy.set(node.key, {
-      floor: builder.floor,
-      via: compilePath(graph, node.key, target, floorKeys),
+      stage: builder.stage,
+      via: compilePath(graph, node.key, target, stageKeys),
     });
   }
 
-  // The rest of what each floor compiled, besides the next floors.
-  const compiled = new Map(floors.map((floor) => [floor.id, []]));
-  for (const [key, { floor }] of builtBy) {
-    if (floorKeys.has(key)) {
+  // The rest of what each stage compiled, besides the next stages.
+  const compiled = new Map(stages.map((stage) => [stage.id, []]));
+  for (const [key, { stage }] of builtBy) {
+    if (stageKeys.has(key)) {
       continue;
     }
-    compiled.get(floor).push(key);
+    compiled.get(stage).push(key);
   }
 
-  // Running totals in build order over the union of floor closures.
+  // Running totals in build order over the union of stage closures.
   const cumulative = new Map();
   const counted = new Set();
   const totals = { built: 0, builtCount: 0, source: 0, sourceCount: 0 };
-  for (const floor of floors) {
-    for (const key of closure(graph, floor.key)) {
+  for (const stage of stages) {
+    for (const key of closure(graph, stage.key)) {
       if (counted.has(key) || seedKeys.has(key)) {
         continue;
       }
@@ -267,7 +267,7 @@ export function analyse(graph, floors, bytesOf) {
         totals.builtCount += 1;
       }
     }
-    cumulative.set(floor.id, { ...totals });
+    cumulative.set(stage.id, { ...totals });
   }
 
   return { builtBy, compiled, cumulative };

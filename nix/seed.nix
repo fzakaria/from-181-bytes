@@ -1,5 +1,5 @@
-# Evaluated by gen-data, once per stage0 architecture: where the hex0 seed
-# comes from and which source tree holds the hex0 it must reproduce.
+# Evaluated by gen-data for i686-linux: where the hex0 seed comes from and
+# which source tree holds the hex0 it must reproduce.
 { nixpkgs, system }:
 let
   stage0 = (import nixpkgs { inherit system; }).minimal-bootstrap.stage0-posix;

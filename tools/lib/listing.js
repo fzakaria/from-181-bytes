@@ -1,6 +1,9 @@
 // Store path listings, as `nix store ls -R --json` prints them from a
 // binary cache's .ls files: nested { type, size, entries, target }.
 
+// A store path's base name is "<hash>-<name>".
+const HASH_SEPARATOR = "-";
+
 const Type = Object.freeze({
   REGULAR: "regular",
   SYMLINK: "symlink",
@@ -30,36 +33,42 @@ export function listingBytes(listing) {
   return total;
 }
 
-// Every file in a listing, sorted by path: [path, size] for a regular
-// file and [path, null, target] for a symlink.
-export function listingFiles(listing) {
-  const files = [];
+// The largest regular file in a listing, { path, size }, with the path
+// relative to the store path ("" when the store path is the file), or
+// null when there is none. A stage's bar is textured from this file.
+export function largestFile(listing) {
+  let largest = null;
   for (const [path, entry] of walk(listing)) {
-    if (entry.type === Type.REGULAR) {
-      files.push([path, entry.size]);
-    } else if (entry.type === Type.SYMLINK) {
-      files.push([path, null, entry.target]);
+    if (entry.type !== Type.REGULAR) {
+      continue;
     }
+    if (largest && largest.size >= entry.size) {
+      continue;
+    }
+    largest = { path, size: entry.size };
   }
-  return files.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return largest;
 }
 
-// Directories whose files go first when a list is over the cap: headers
-// and shared data, which nobody needs to trace one file at a time.
-const BULK_PREFIXES = ["include/", "share/"];
-
-// Keep a file list under `cap` entries. Over the cap, drop BULK_PREFIXES;
-// still over, drop the whole list. Returns the files kept and how many
-// were left out.
-export function capFiles(files, cap) {
-  if (files.length <= cap) {
-    return { files, omitted: 0 };
+// The largest regular file across several store paths, given a function
+// that returns each path's listing: { path, file, size }, where path is
+// the file's full store path and file names it for a reader, relative to
+// its store path, or the store path's name without its hash when the
+// path is the file.
+export function largestAcross(storePaths, listingOf) {
+  let best = null;
+  for (const storePath of storePaths) {
+    const found = largestFile(listingOf(storePath));
+    if (!found || (best && best.size >= found.size)) {
+      continue;
+    }
+    const base = storePath.slice(storePath.lastIndexOf("/") + 1);
+    const name = base.slice(base.indexOf(HASH_SEPARATOR) + 1);
+    best = {
+      path: found.path === "" ? storePath : `${storePath}/${found.path}`,
+      file: found.path === "" ? name : found.path,
+      size: found.size,
+    };
   }
-  const kept = files.filter(
-    ([path]) => !BULK_PREFIXES.some((prefix) => path.startsWith(prefix)),
-  );
-  if (kept.length <= cap) {
-    return { files: kept, omitted: files.length - kept.length };
-  }
-  return { files: [], omitted: files.length };
+  return best;
 }

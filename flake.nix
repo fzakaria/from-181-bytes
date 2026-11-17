@@ -31,6 +31,7 @@
           site = import ./nix/site.nix {
             inherit pkgs;
             nixpkgsRev = nixpkgs.rev;
+            nixpkgsLastModified = nixpkgs.lastModifiedDate;
           };
           default = site;
 
@@ -83,8 +84,7 @@
             test -f ${site}/index.html
             test -f ${site}/js.*/app.js
             test -f ${site}/data/seeds/index.json
-            test -f ${site}/data/chain-i686-linux.json
-            test -f ${site}/data/chain-x86_64-linux.json
+            test -f ${site}/data/chain.json
             touch $out
           '';
 
@@ -100,16 +100,38 @@
           # bumped without regenerating the data fails here rather than
           # deploying a site that describes a different nixpkgs.
           data-pin = pkgs.runCommand "from-181-bytes-data-pin" { nativeBuildInputs = [ pkgs.jq ]; } ''
-            for chain in ${self}/site/data/chain-*.json; do
-              rev=$(jq -r .nixpkgs.rev "$chain")
+            for data in ${self}/site/data/chain.json ${self}/site/data/seeds/index.json; do
+              rev=$(jq -r .nixpkgs.rev "$data")
               if [ "$rev" != "${nixpkgs.rev}" ]; then
-                echo "$chain describes nixpkgs $rev, flake.lock pins ${nixpkgs.rev}" >&2
+                echo "$data describes nixpkgs $rev, flake.lock pins ${nixpkgs.rev}" >&2
                 echo "run: nix run .#gen-data" >&2
                 exit 1
               fi
             done
             touch $out
           '';
+        }
+        # The page in headless Chromium, served from the built site:
+        # hovering, pinning and unpinning a stage, and no sideways scroll
+        # from a phone to a desktop (tests/browser). Linux only, where
+        # nixpkgs builds Chromium.
+        // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+          browser =
+            pkgs.runCommand "from-181-bytes-browser"
+              {
+                nativeBuildInputs = [
+                  pkgs.nodejs
+                  pkgs.chromium
+                ];
+                FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; };
+                FROM181_SITE = site;
+              }
+              ''
+                export HOME=$TMPDIR
+                cd ${self}
+                node --test tests/browser/*.test.mjs
+                touch $out
+              '';
         }
       );
 

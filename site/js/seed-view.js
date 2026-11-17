@@ -11,6 +11,8 @@ import {
   lineStops,
   lineSegments,
   hangColumn,
+  tokenizeSegment,
+  Token,
 } from "./hex0.js";
 import { el } from "./dom.js";
 
@@ -27,6 +29,14 @@ const hex2 = (n) => n.toString(HEX_RADIX).toUpperCase().padStart(2, "0");
 const COMMENT_ROOM = 24;
 const GUTTER_PAD = 2;
 const PROBE_TEXT = "0".repeat(100);
+
+// A segment's words as highlighted tokens: plain text stays a text node,
+// every other kind is a span the stylesheet colours by its class.
+function highlighted(words) {
+  return tokenizeSegment(words).map(({ kind, text }) =>
+    kind === Token.PLAIN ? text : el("span", { class: `tok-${kind}` }, text),
+  );
+}
 
 // One observer for the listing pane; it re-hangs whichever source is
 // shown when the pane changes width.
@@ -106,15 +116,15 @@ export function renderSeed({ seed, source, arch }) {
   grid.replaceChildren(...buttons);
 
   // One block per source line: its number in the gutter, then the line
-  // with tabs expanded so its columns can be counted, as segments with
-  // the spaces after each kept outside it.
+  // with tabs expanded so its columns can be counted, as highlighted
+  // segments with the spaces after each kept outside it.
   const expanded = text.map(expandTabs);
   const segmentsOf = expanded.map((content) =>
     lineSegments(content).map(({ start, text: piece }) => {
       const words = piece.trimEnd();
       return {
         start,
-        node: el("span", { class: "seg" }, words),
+        node: el("span", { class: "seg" }, highlighted(words)),
         gap: piece.slice(words.length),
       };
     }),

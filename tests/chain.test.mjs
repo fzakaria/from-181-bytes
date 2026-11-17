@@ -1,6 +1,6 @@
-// Tests tools/lib/chain.js, the graph analysis behind the floors: which
-// floor built a derivation, by what path through the derivation graph,
-// and how many bytes the chain has produced by each floor. The graph is
+// Tests tools/lib/chain.js, the graph analysis behind the stages: which
+// stage built a derivation, by what path through the derivation graph,
+// and how many bytes the chain has produced by each stage. The graph is
 // a hand-made miniature of minimal-bootstrap in the real
 // `nix derivation show` v4 shape: a fetched seed, an assembler whose
 // builder is the previous stage, a shell, and compilers that the shell
@@ -13,7 +13,7 @@ import {
   analyse,
   frontier,
   closure,
-  directFloors,
+  directStages,
   compilePath,
 } from "../tools/lib/chain.js";
 
@@ -101,8 +101,8 @@ const show = {
   ]),
 };
 
-// Floors in build order with their roles, as site/js/floors.js gives them.
-const floors = [
+// Stages in build order with their roles, as site/js/stages.js gives them.
+const stages = [
   { id: "seed", role: "seed", key: "seed.drv" },
   { id: "hex0", role: "asm", key: "hex0.drv" },
   { id: "asm", role: "asm", key: "asm.drv" },
@@ -118,50 +118,50 @@ const bytesOf = (node) =>
   node.name === "seed" ? 1 : node.kind === "source" ? 10 : 100;
 
 const graph = parseDerivations(show);
-const floorKeys = new Set(floors.map((floor) => floor.key));
+const stageKeys = new Set(stages.map((stage) => stage.key));
 
-// The frontier stops at the first floor down each input path and walks
-// straight through anything that is not a floor, builder scripts
+// The frontier stops at the first stage down each input path and walks
+// straight through anything that is not a stage, builder scripts
 // included, which is how a kaem-built compiler reaches the compiler
 // named only in its script.
-test("the frontier walks through non-floors and stops at floors", () => {
-  const reached = frontier(graph, "ccB.drv", floorKeys);
+test("the frontier walks through non-stages and stops at stages", () => {
+  const reached = frontier(graph, "ccB.drv", stageKeys);
   assert.deepEqual([...reached.keys()].sort(), ["ccA.drv", "shell.drv"]);
   assert.deepEqual(reached.get("ccA.drv"), ["ccB-builder.drv", "ccA.drv"]);
   assert.deepEqual(reached.get("shell.drv"), ["shell.drv"]);
 });
 
-// Who built a derivation: of the floors on its frontier, a compiler beats
+// Who built a derivation: of the stages on its frontier, a compiler beats
 // an assembler, which beats a linker, which beats a tool or a library;
-// within a role, a floor used directly beats one reached through another
-// build, and then the later floor wins.
-test("built-by prefers compilers, then the latest floor", () => {
-  const result = analyse(graph, floors, bytesOf);
+// within a role, a stage used directly beats one reached through another
+// build, and then the later stage wins.
+test("built-by prefers compilers, then the latest stage", () => {
+  const result = analyse(graph, stages, bytesOf);
   const builtBy = (name) => result.builtBy.get(`${name}.drv`);
 
   assert.equal(builtBy("seed"), undefined);
-  assert.equal(builtBy("hex0").floor, "seed");
-  assert.equal(builtBy("asm").floor, "hex0");
-  assert.equal(builtBy("ccA").floor, "asm");
-  assert.equal(builtBy("ccB").floor, "ccA");
+  assert.equal(builtBy("hex0").stage, "seed");
+  assert.equal(builtBy("asm").stage, "hex0");
+  assert.equal(builtBy("ccA").stage, "asm");
+  assert.equal(builtBy("ccB").stage, "ccA");
   assert.deepEqual(builtBy("ccB").via, ["ccB-builder.drv"]);
-  assert.equal(builtBy("prog").floor, "ccB");
-  assert.equal(builtBy("top").floor, "ccB");
+  assert.equal(builtBy("prog").stage, "ccB");
+  assert.equal(builtBy("top").stage, "ccB");
   assert.deepEqual(builtBy("top").via, ["prog.drv"]);
 });
 
 // Fetched derivations have no builder in the chain; scripts are not
 // compiled by anything either, so neither gets a built-by entry.
-test("sources and scripts are not attributed to a floor", () => {
-  const result = analyse(graph, floors, bytesOf);
+test("sources and scripts are not attributed to a stage", () => {
+  const result = analyse(graph, stages, bytesOf);
   assert.equal(result.builtBy.get("src.drv"), undefined);
   assert.equal(result.builtBy.get("ccB-builder.drv"), undefined);
 });
 
-// The derivations a floor built that are not floors themselves are
-// listed under it, so a floor can say what else it compiled.
-test("non-floor builds are listed under the floor that built them", () => {
-  const result = analyse(graph, floors, bytesOf);
+// The derivations a stage built that are not stages themselves are
+// listed under it, so a stage can say what else it compiled.
+test("non-stage builds are listed under the stage that built them", () => {
+  const result = analyse(graph, stages, bytesOf);
   assert.deepEqual(result.compiled.get("ccB").sort(), [
     "patch.drv",
     "prog.drv",
@@ -175,17 +175,17 @@ test("non-floor builds are listed under the floor that built them", () => {
 // the patch it uses was compiled by ccB. This is gnumake in nixpkgs,
 // built by tinycc-bootstrappable with a gnupatch that a later tcc built.
 test("a compiler used directly beats one reached through a tool", () => {
-  const result = analyse(graph, floors, bytesOf);
-  assert.equal(result.builtBy.get("make.drv").floor, "ccA");
+  const result = analyse(graph, stages, bytesOf);
+  assert.equal(result.builtBy.get("make.drv").stage, "ccA");
   assert.deepEqual(result.builtBy.get("make.drv").via, []);
 });
 
-// Bytes produced by each floor count every built derivation needed so
-// far exactly once, even when several floors share it. Fetched source is
+// Bytes produced by each stage count every built derivation needed so
+// far exactly once, even when several stages share it. Fetched source is
 // counted apart, and the seed is in neither: it is what you trust, not
 // something the chain produced or read.
 test("cumulative bytes count shared derivations once and keep the seed apart", () => {
-  const result = analyse(graph, floors, bytesOf);
+  const result = analyse(graph, stages, bytesOf);
   const at = (id) => result.cumulative.get(id);
 
   assert.deepEqual(at("seed"), {
@@ -207,7 +207,7 @@ test("cumulative bytes count shared derivations once and keep the seed apart", (
     sourceCount: 1,
   });
 
-  // The shell floor adds the shell; ccB then adds its builder script and
+  // The shell stage adds the shell; ccB then adds its builder script and
   // itself, and the shell it also needs is not counted a second time.
   assert.deepEqual(at("shell"), {
     built: 400,
@@ -222,7 +222,7 @@ test("cumulative bytes count shared derivations once and keep the seed apart", (
     sourceCount: 1,
   });
 
-  // The last floor holds everything in the graph but the seed.
+  // The last stage holds everything in the graph but the seed.
   const builtNodes = [...graph.values()].filter(
     (node) => node.kind !== "source",
   );
@@ -242,33 +242,33 @@ test("closure is the start plus every transitive input", () => {
   ]);
 });
 
-// The floors a derivation used directly: its own inputs, or floors named
-// only in its builder script. A floor reached through some other build
+// The stages a derivation used directly: its own inputs, or stages named
+// only in its builder script. A stage reached through some other build
 // (top reaches ccB only through prog) is not one of them.
-test("direct floors look through builder scripts and nothing else", () => {
-  assert.deepEqual([...directFloors(graph, "ccB.drv", floorKeys)].sort(), [
+test("direct stages look through builder scripts and nothing else", () => {
+  assert.deepEqual([...directStages(graph, "ccB.drv", stageKeys)].sort(), [
     "ccA.drv",
     "shell.drv",
   ]);
-  assert.deepEqual([...directFloors(graph, "top.drv", floorKeys)].sort(), [
+  assert.deepEqual([...directStages(graph, "top.drv", stageKeys)].sort(), [
     "lib.drv",
     "shell.drv",
   ]);
 });
 
-// An ambient floor, one put on every build's PATH the way kaem.runCommand
+// An ambient stage, one put on every build's PATH the way kaem.runCommand
 // adds mescc-tools, is a direct input of everything and so says nothing
 // about who compiled what. It never wins on directness: with ccA ambient,
 // make goes to the later ccB instead.
-test("an ambient floor does not count as used directly", () => {
-  const ambient = floors.map((floor) =>
-    floor.id === "ccA" ? { ...floor, ambient: true } : floor,
+test("an ambient stage does not count as used directly", () => {
+  const ambient = stages.map((stage) =>
+    stage.id === "ccA" ? { ...stage, ambient: true } : stage,
   );
   const result = analyse(graph, ambient, bytesOf);
-  assert.equal(result.builtBy.get("make.drv").floor, "ccB");
+  assert.equal(result.builtBy.get("make.drv").stage, "ccB");
 });
 
-// The path shown between a derivation and the floor that built it should
+// The path shown between a derivation and the stage that built it should
 // follow the compiler's own lineage, not the shortest route through a
 // side tool. Here tcc-final reaches tcc-old in two steps through
 // coreutils and in three through the tcc builds; the three-step path is
@@ -296,7 +296,7 @@ test("the path to a builder follows the derivations named like the start", () =>
   ]);
 });
 
-// The lineage may be named for the floor rather than the start: musl
+// The lineage may be named for the stage rather than the start: musl
 // built by tcc reaches tinycc-mes through the intermediate tcc, not
 // through the tar its build also used.
 test("the path may follow derivations named like the builder", () => {

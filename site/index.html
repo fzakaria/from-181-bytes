@@ -6,7 +6,7 @@
     <title>from 181 bytes</title>
     <meta
       name="description"
-      content="nixpkgs builds GCC 16 from source, starting from one 181 byte binary. Every byte of it explained, and every floor of the climb from there to the compiler."
+      content="nixpkgs builds GCC 16 from source, starting from one 181 byte binary. Every byte of it explained, and every stage of the climb from there to the compiler."
     />
     <link
       rel="icon"
@@ -30,7 +30,7 @@
     />
     <meta
       property="og:description"
-      content="From a 181 byte hex0 seed to GCC 16.2.0, one floor at a time, measured from cache.nixos.org."
+      content="From a 181 byte hex0 seed to GCC 16.2.0, one stage at a time, measured from cache.nixos.org."
     />
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -40,7 +40,6 @@
       <nav class="site">
         <a href="#seed">Seed</a>
         <a href="#climb">Climb</a>
-        <a href="#who">Who built you?</a>
         <a
           href="https://seenix.dev/"
           title="seenix: every byte of a Nix closure, one pixel each"
@@ -56,24 +55,25 @@
       </nav>
     </header>
 
+    <figure class="note">
+      <blockquote>
+        I think
+        <a href="https://github.com/oriansj/stage0-posix">stage0</a> deserves a
+        Nobel prize in computer science. Jeremiah Orians and the stage0
+        contributors made it possible to build GCC and glibc while trusting only
+        181 bytes of binary, and those bytes come with a comment for every one.
+      </blockquote>
+      <figcaption>— Farid</figcaption>
+    </figure>
+
     <p class="intro">
-      <strong class="lede">Every byte you have to trust, explained.</strong> On
-      <span id="intro-system">i686-linux</span>, nixpkgs builds its C compilers
-      from source, all the way up to GCC 16.2.0, and the only program in the
-      chain it does not build is the one below:
-      <span id="intro-size">181</span> bytes of machine code that turn
-      hexadecimal text into bytes. Point at a byte to see the line of commented
-      source it came from.
+      On i686-linux, nixpkgs builds GCC 16.2.0 from source. The one program it
+      does not build is below: 181 bytes that turn hex text into bytes. Point at
+      a byte to see its line of source.
     </p>
 
     <section id="seed" aria-labelledby="seed-heading">
       <h2 id="seed-heading">The seed</h2>
-      <div
-        class="tabs"
-        id="arch-tabs"
-        role="tablist"
-        aria-label="Architecture"
-      ></div>
       <div class="seed-layout">
         <div>
           <div id="seed-grid" class="seed-grid" aria-label="seed bytes"></div>
@@ -92,50 +92,37 @@
     <aside class="roots" aria-labelledby="roots-heading">
       <h3 id="roots-heading">Which nixpkgs grows from this</h3>
       <p>
-        At the nixpkgs revision this page describes, the standard environment on
-        <code>x86_64-linux</code> and <code>i686-linux</code> starts from this
-        chain:
-        <a
-          href="https://github.com/NixOS/nixpkgs/blob/__NIXPKGS_REV__/pkgs/stdenv/linux/stage0.nix"
-          >pkgs/stdenv/linux/stage0.nix</a
-        >
-        takes the last GCC and glibc below as its first compiler and C library,
-        and
-        <code>hello</code>'s derivation closure contains the hex0 seed on both
-        systems. That landed with
+        Since
         <a href="https://github.com/NixOS/nixpkgs/pull/479322"
           >nixpkgs#479322</a
         >
-        in January 2026. Every other Linux platform still starts from a prebuilt
+        (January 2026), the standard environment on <code>i686-linux</code> and
+        <code>x86_64-linux</code> starts from this chain:
+        <a
+          href="https://github.com/NixOS/nixpkgs/blob/__NIXPKGS_REV__/pkgs/stdenv/linux/stage0.nix"
+          >stage0.nix</a
+        >
+        takes its last GCC and glibc. x86_64 starts from a 229 byte AMD64 seed.
+        Other Linux platforms start from a prebuilt
         <a
           href="https://github.com/NixOS/nixpkgs/tree/__NIXPKGS_REV__/pkgs/stdenv/linux/bootstrap-files"
           >bootstrap-tools tarball</a
-        >; on <code>aarch64-linux</code>, <code>hello</code> depends on
-        <code>bootstrap-tools.tar.xz</code> and no seed.
+        >.
       </p>
       <p>
-        181 bytes is the binary you trust. You still trust the kernel that runs
-        it, the Nix daemon that sandboxes each step, and the hardware. The rest
-        is source text, which you can read.
+        You still trust the kernel, the Nix daemon and the hardware.
         <a href="https://github.com/ironmeld/builder-hex0">builder-hex0</a> and
         <a href="https://github.com/fosslinux/live-bootstrap">live-bootstrap</a>
-        take the kernel out of that list too.
+        remove the kernel too.
       </p>
     </aside>
 
     <section id="climb" aria-labelledby="climb-heading">
       <h2 id="climb-heading">The climb</h2>
-      <p class="muted">
-        One floor per stage, in build order, from the seed down to GCC 16. Every
-        floor was built by a floor above it. Scroll and the gauges count what
-        has been built by the floor in view.
+      <p class="intro">
+        Each stage was built by one above it. Hover a stage to preview it, click
+        to pin it.
       </p>
-      <div
-        class="tabs"
-        id="system-tabs"
-        role="tablist"
-        aria-label="System"
-      ></div>
       <div class="gauges" id="gauges">
         <div class="gauge">
           <span class="gauge-label">bytes you trust</span>
@@ -153,57 +140,21 @@
           <span class="gauge-label">source read</span>
           <span class="gauge-value" id="gauge-source">–</span>
         </div>
-        <ol class="milestones" id="milestones" aria-label="Milestones"></ol>
       </div>
       <div class="climb-layout">
         <figure class="tower-wrap">
+          <figcaption id="tower-caption" class="legend">
+            Bar width: output size, log scale. Shade: byte entropy of the
+            stage's largest file. Grey tick: source fetched.
+          </figcaption>
           <svg
             id="tower"
             class="tower"
             role="img"
             aria-labelledby="tower-caption"
           ></svg>
-          <figcaption id="tower-caption" class="muted small">
-            One row per floor, seed at the top, drawn one cell per byte. The
-            band is everything built so far, on a log scale from 181 bytes to
-            the last floor; the solid core is what that floor produced; the grey
-            tick is source fetched there; arcs on the left join each floor to
-            the floor that built it. Hover or tap a row.
-          </figcaption>
         </figure>
-        <aside class="floor-card" id="floor-card" aria-live="polite"></aside>
-      </div>
-    </section>
-
-    <section id="who" aria-labelledby="who-heading">
-      <h2 id="who-heading">Who built you?</h2>
-      <p class="muted">
-        Every file in the runtime closure of the last floor. Pick one and follow
-        it down through the derivation graph to the seed.
-      </p>
-      <div class="who-layout">
-        <div class="who-files">
-          <select id="who-path" aria-label="store path"></select>
-          <input
-            id="who-filter"
-            type="search"
-            placeholder="filter files, e.g. bin/gcc"
-            aria-label="filter files"
-          />
-          <ul id="who-list" class="who-list"></ul>
-          <p id="who-more" class="muted small"></p>
-        </div>
-        <div class="who-picture">
-          <div class="who-mini">
-            <svg
-              id="who-tower"
-              class="tower compact"
-              role="img"
-              aria-label="the trace on the chain"
-            ></svg>
-          </div>
-          <ol id="who-trace" class="who-trace" aria-live="polite"></ol>
-        </div>
+        <aside class="stage-card" id="stage-card" aria-live="polite"></aside>
       </div>
     </section>
 
@@ -211,27 +162,22 @@
       <h2 id="credits-heading">Credits</h2>
       <ul class="credits">
         <li>
-          <a href="https://github.com/oriansj/stage0-posix">stage0-posix</a>, by
-          Jeremiah Orians (oriansj) and contributors. The x86 hex0 source above
-          also names Andrius Štikonas and Noah Goldstein. The seeds live in
+          <a href="https://github.com/oriansj/stage0-posix">stage0-posix</a> and
           <a href="https://github.com/oriansj/bootstrap-seeds"
             >bootstrap-seeds</a
-          >.
+          >, by Jeremiah Orians and contributors, including Andrius Štikonas and
+          Noah Goldstein.
         </li>
         <li>
-          <a href="https://www.gnu.org/software/mes/">GNU Mes</a> and MesCC, by
-          Jan (janneke) Nieuwenhuizen and contributors, and janneke's
-          <a href="https://gitlab.com/janneke/tinycc">bootstrappable TinyCC</a>.
+          <a href="https://www.gnu.org/software/mes/">GNU Mes</a>, MesCC and the
+          <a href="https://gitlab.com/janneke/tinycc">bootstrappable TinyCC</a>,
+          by Jan (janneke) Nieuwenhuizen and contributors.
         </li>
         <li>
           <a href="https://github.com/fosslinux/live-bootstrap"
             >live-bootstrap</a
-          >, by fosslinux and contributors. Many of nixpkgs' build steps say
-          they were adapted from it.
-        </li>
-        <li>
-          <a href="https://bootstrappable.org/">bootstrappable.org</a>, where
-          this effort is organised.
+          >, which many of nixpkgs' build steps were adapted from, and
+          <a href="https://bootstrappable.org/">bootstrappable.org</a>.
         </li>
         <li>
           nixpkgs'
@@ -242,25 +188,31 @@
           <a href="https://github.com/NixOS/nixpkgs/pull/227914"
             >nixpkgs#227914</a
           >
-          (merged May 2023) and hooked into the standard environment by Aleksi
-          Hannula in
+          (May 2023) and joined to the standard environment by Aleksi Hannula in
           <a href="https://github.com/NixOS/nixpkgs/pull/479322"
             >nixpkgs#479322</a
-          >. The minimal-bootstrap team: alejandrosame, aleksi, emilytrau,
-          ericson2314, jk, pyrox0 and siraben.
+          >. Team: alejandrosame, aleksi, emilytrau, ericson2314, jk, pyrox0 and
+          siraben.
         </li>
       </ul>
     </section>
 
-    <footer class="muted small">
+    <footer class="muted">
       <p>
-        Data: nixpkgs <a id="footer-rev" href="#"></a>, from
-        <code>nix derivation show -r</code> and cache.nixos.org. Sizes are the
-        bytes of file content in each store path, from the cache's file
-        listings, not NAR sizes. Regenerate with
-        <code>nix run .#gen-data</code>.
+        nixpkgs <a id="footer-rev" href="#"></a
+        ><span id="footer-date"> · __NIXPKGS_DATE__</span>
       </p>
-      <p>Served from <code>__STORE_PATH__</code>.</p>
+      <p>
+        Made with ❤️ by
+        <a href="https://fzakaria.com">Farid Zakaria</a>
+        ·
+        <a href="https://github.com/fzakaria/from-181-bytes/blob/main/LICENSE"
+          >MIT</a
+        >
+        ·
+        <a href="https://github.com/fzakaria/from-181-bytes">GitHub</a>
+      </p>
+      <p id="store"><code id="store-path">__STORE_PATH__</code></p>
     </footer>
 
     <script type="module" src="js/app.js"></script>

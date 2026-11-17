@@ -206,3 +206,69 @@ export function hangColumn(stops, columns, room) {
   }
   return hang;
 }
+
+// What a piece of a source line is, for syntax highlighting.
+export const Token = Object.freeze({
+  HEX: "hex",
+  MNEMONIC: "mnemonic",
+  REF: "ref",
+  COMMENT: "comment",
+  LABEL: "label",
+  PLAIN: "plain",
+});
+
+// The special tokens in each kind of segment, and what the rest of that
+// segment is. In the hex, runs of digits are bytes. After ';', a label
+// reference is a sigil (stage0 uses ! @ $ ~ % &, with ^ before ~ for
+// relative addresses) and a name, at the start of a word. After '#', a
+// label definition is ':' and a name, after '#' or a space.
+const HEX_RULE = {
+  pattern: /[0-9A-Fa-f]+/g,
+  kind: Token.HEX,
+  rest: Token.PLAIN,
+};
+const MNEMONIC_RULE = {
+  pattern: /(?<=^|\s)\^?[!@$~%&][A-Za-z_]\w*/g,
+  kind: Token.REF,
+  rest: Token.MNEMONIC,
+};
+const COMMENT_RULE = {
+  pattern: /(?<=#|\s):[A-Za-z_]\w*/g,
+  kind: Token.LABEL,
+  rest: Token.COMMENT,
+};
+
+// Split one segment from lineSegments into tokens { kind, text } that
+// join back into it. The segment's first non-space character says what
+// it is: ';' starts a mnemonic, '#' a comment, anything else is hex.
+export function tokenizeSegment(text) {
+  const lead = text.trimStart()[0];
+  let rule = HEX_RULE;
+  if (lead === MNEMONIC_MARKER) {
+    rule = MNEMONIC_RULE;
+  } else if (lead === COMMENT_MARKER) {
+    rule = COMMENT_RULE;
+  }
+
+  // The special tokens, and the rest of the segment between them.
+  const tokens = [];
+  const push = (kind, piece) => {
+    if (piece === "") {
+      return;
+    }
+    const last = tokens.at(-1);
+    if (last && last.kind === kind) {
+      last.text += piece;
+      return;
+    }
+    tokens.push({ kind, text: piece });
+  };
+  let at = 0;
+  for (const match of text.matchAll(rule.pattern)) {
+    push(rule.rest, text.slice(at, match.index));
+    push(rule.kind, match[0]);
+    at = match.index + match[0].length;
+  }
+  push(rule.rest, text.slice(at));
+  return tokens;
+}

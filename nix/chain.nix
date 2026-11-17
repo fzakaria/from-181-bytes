@@ -1,10 +1,10 @@
-# Evaluated by gen-data, once per system: the derivation and output
-# paths of every floor in site/js/floors.js, at the pinned nixpkgs. The
-# last floor is the root `nix derivation show -r` starts from.
+# Evaluated by gen-data for i686-linux: the derivation and output
+# paths of every stage in site/js/stages.js, at the pinned nixpkgs. The
+# last stage is the root `nix derivation show -r` starts from.
 {
   nixpkgs,
   system,
-  # site/js/floors.js's attribute paths, as a JSON list
+  # site/js/stages.js's attribute paths, as a JSON list
   attrs,
 }:
 let
@@ -28,5 +28,5 @@ let
 in
 {
   stage0Arch = minimal-bootstrap.stage0-posix.stage0Arch;
-  floors = lib.genAttrs (builtins.fromJSON attrs) describe;
+  stages = lib.genAttrs (builtins.fromJSON attrs) describe;
 }
