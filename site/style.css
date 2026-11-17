@@ -130,6 +130,11 @@ a {
   font-size: 14px;
 }
 
+/* What the climb leads to, under the tower. */
+.after-climb {
+  margin-top: 0.8rem;
+}
+
 /* The owner's note at the top, signed in small type. */
 .note {
   max-width: 44rem;

@@ -161,6 +161,13 @@
         </figure>
         <aside class="stage-card" id="stage-card" aria-live="polite"></aside>
       </div>
+      <p class="intro after-climb">
+        GCC 16 and glibc become nixpkgs' standard environment, so every package
+        nixpkgs builds from source on x86 Linux descends from a hex0 seed: on
+        x86_64-linux, 89,093 of 89,254 packages have glibc in their build
+        closure. The exceptions are compilers that start from a prebuilt copy of
+        themselves, such as GHC, rustc, Go and the JDK.
+      </p>
     </section>
 
     <section id="credits" aria-labelledby="credits-heading">
