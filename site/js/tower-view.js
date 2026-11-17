@@ -45,14 +45,15 @@ const TEXTURE_GAMMA = 1.6;
 const HEX_RADIX = 16;
 
 // Gridlines on the bars' log axis, each marking a size a bar reaches,
-// labelled in a strip below the last row.
+// labelled in a strip below the last row, one label line per gridline
+// so labels never collide on a narrow tower.
 const KIB = 1024;
 const GRIDLINES = Object.freeze([
   { bytes: KIB, label: "1 KiB" },
   { bytes: KIB ** 2, label: "1 MiB" },
 ]);
-const GRID_STRIP = 16;
-const GRID_LABEL_DY = 12;
+const GRID_LABEL_LINE = 12;
+const GRID_STRIP = GRID_LABEL_LINE * GRIDLINES.length + 4;
 
 // The marker drawn at the left edge of a pinned row.
 const PIN_MARK_WIDTH = 3;
@@ -264,9 +265,10 @@ export function drawTower(
 
   // Gridlines: for each size, a pair of lines where a bar that size would
   // end on either side of the axis, from below the seed to the strip
-  // under the last row, labelled there at both ends.
+  // under the last row. The right line of each pair is labelled there,
+  // each label on its own line.
   const grid = svgEl("g", { class: "grid" });
-  for (const { bytes, label } of GRIDLINES) {
+  GRIDLINES.forEach(({ bytes, label }, i) => {
     const half = widthOf(bytes) / 2;
     for (const x of [axis - half, axis + half]) {
       grid.append(
@@ -277,14 +279,20 @@ export function drawTower(
           y2: height,
           class: "gridline",
         }),
-        svgEl(
-          "text",
-          { x, y: height + GRID_LABEL_DY, class: "grid-label" },
-          label,
-        ),
       );
     }
-  }
+    grid.append(
+      svgEl(
+        "text",
+        {
+          x: axis + half,
+          y: height + GRID_LABEL_LINE * (i + 1),
+          class: "grid-label",
+        },
+        label,
+      ),
+    );
+  });
   svg.append(grid);
 
   // Built-by arcs, from the builder's row down to the stage it built,

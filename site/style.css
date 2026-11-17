@@ -366,6 +366,10 @@ code {
 @media (max-width: 52rem) {
   .climb-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Room under the climb so its end can scroll clear of the sheet. */
+  #climb {
     padding-bottom: min(40vh, 21rem);
   }
   .stage-card {
