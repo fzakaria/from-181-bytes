@@ -38,6 +38,11 @@ function highlighted(words) {
   );
 }
 
+// What the byte description shows for a part a line does not have. Every
+// row is always there, so the description keeps its height from byte to
+// byte.
+const NONE = "–";
+
 // Whether selecting a byte may scroll the source pane to its line. A
 // byte picked in the grid may; a line picked in the pane is already
 // under the pointer, and scrolling would slide another line under it.
@@ -248,18 +253,12 @@ export function renderSeed({ seed, source, arch }) {
         el("dd", {}, `${line + 1} of ${arch.source}`),
         el("dt", {}, "source"),
         el("dd", {}, el("code", {}, parts.hex)),
-        parts.mnemonic
-          ? [
-              el("dt", {}, "instruction"),
-              el("dd", {}, el("code", {}, parts.mnemonic)),
-            ]
-          : null,
-        parts.comment
-          ? [el("dt", {}, "comment"), el("dd", {}, parts.comment)]
-          : null,
-        heading[line]
-          ? [el("dt", {}, "under"), el("dd", {}, heading[line])]
-          : null,
+        el("dt", {}, "instruction"),
+        el("dd", {}, parts.mnemonic ? el("code", {}, parts.mnemonic) : NONE),
+        el("dt", {}, "comment"),
+        el("dd", {}, parts.comment || NONE),
+        el("dt", {}, "under"),
+        el("dd", {}, heading[line] || NONE),
       ),
     );
   }

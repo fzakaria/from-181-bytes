@@ -168,12 +168,32 @@ code {
 .seed-layout {
   display: grid;
   grid-template-columns: min-content minmax(0, 1fr);
+  grid-template-areas:
+    "bytes source"
+    "info source";
   gap: 1rem;
   align-items: start;
 }
+.seed-bytes {
+  grid-area: bytes;
+}
+.seed-source {
+  grid-area: source;
+}
+.byte-info {
+  grid-area: info;
+}
+
+/* On a narrow screen the byte description goes under the source pane,
+   so its height, which changes from byte to byte, never moves the pane
+   under the pointer. */
 @media (max-width: 52rem) {
   .seed-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "bytes"
+      "source"
+      "info";
   }
 }
 .seed-grid {

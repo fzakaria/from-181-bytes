@@ -107,7 +107,9 @@ for (const size of [DESKTOP, PHONE]) {
 }
 
 // Moving the pointer down the pane over line after line, and wheeling
-// it, never makes the pane scroll itself: only the wheel moves it.
+// it, never makes the pane scroll itself: only the wheel moves it. Once
+// the pointer is back on the grid, hovering a byte scrolls the pane
+// again.
 test("hovering and wheeling the pane never makes it scroll itself", async () => {
   const page = await browser.open("/", DESKTOP.width, DESKTOP.height);
   await page.evaluate(
@@ -144,5 +146,14 @@ test("hovering and wheeling the pane never makes it scroll itself", async () => 
     "the pane moved after the wheel stopped",
   );
   assert.equal(after.scrollY, pane.scrollY);
+
+  // Back on the grid, a byte whose line the wheel took out of view
+  // brings it back.
+  const LAST_BYTE = 180;
+  const last = await page.evaluate(byteState(LAST_BYTE));
+  assert.equal(last.visible, false);
+  await page.move(last.x, last.y);
+  await page.evaluate(SETTLE);
+  assert.ok((await page.evaluate(byteState(LAST_BYTE))).visible);
   page.close();
 });

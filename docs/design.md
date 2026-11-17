@@ -9,6 +9,14 @@ describes it: offset, value, the hex on the line, the instruction after
 `;`, the comment after `#`, and the `## Section` or `#:label` it sits
 under.
 
+The source pane only moves when a byte picked in the grid has its line
+out of view, in one instant move, and never moves the page. Pointing at
+lines in the pane highlights them without scrolling, and once the reader
+scrolls the pane themselves it is left alone until the pointer is back
+on the grid. The highlight is background colour only, and on a phone the
+byte description sits under the pane, so nothing shifts as the pointer
+moves. `tests/browser/seed.test.mjs` holds the page to this.
+
 The mapping is not precomputed. `site/js/hex0.js` is a port of the seed's
 own loop (hex digits pair into bytes, `#` and `;` start a comment that
 ends at a newline), and the page runs it over `hex0_x86.hex0` and
