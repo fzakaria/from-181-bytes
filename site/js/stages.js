@@ -66,7 +66,7 @@ export const stages = [
     title: "hex0",
     writtenIn: "hex0",
     reads: "hex0",
-    note: "The seed's source, assembled by the seed. Its hash is pinned to the seed's.",
+    note: "The seed's source, assembled by the seed. Its hash is pinned to the seed's. The source fetched here is the whole stage0-posix tree, every architecture's, fetched once for the stages below.",
     link: STAGE0,
   },
   {

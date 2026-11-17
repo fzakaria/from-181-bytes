@@ -72,6 +72,10 @@ the card stays on it while the page scrolls. Clicking it again or
 pressing Escape unpins it. A page opened on `#stage-<id>` starts with
 that stage pinned. Touch has no hover, so a tap pins.
 
+The gauges count through the same stage as the card, so the two never
+disagree: bytes produced, derivations built and source read up to and
+including it, with a caption naming it.
+
 Highlighting stays light: the stage shown is outlined, its builder
 outlined dashed, and the arc between them tinted. On a phone the card is
 a sheet at the bottom of the screen, shown only while the picture is on

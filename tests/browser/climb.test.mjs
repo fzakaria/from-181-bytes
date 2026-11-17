@@ -1,13 +1,32 @@
 // Tests the climb in a real browser: hovering a stage previews it only
 // while the pointer is on the tower, a click pins a stage until it is
 // clicked again or Escape is pressed, a pin is kept in the URL fragment,
-// and the page never scrolls sideways. Each test opens the page in
+// the gauges count through the stage the card shows, and the page never
+// scrolls sideways. Each test opens the page in
 // headless Chromium (harness.mjs) and drives it with pointer and key
 // events.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 
+import { readFileSync } from "node:fs";
+
 import { launch } from "./harness.mjs";
+
+// The measured chain, from the checkout: the built site serves the same
+// file under a hashed name.
+const chain = JSON.parse(
+  readFileSync(new URL("../../site/data/chain.json", import.meta.url), "utf8"),
+);
+const cumulativeOf = (id) =>
+  chain.stages.find((stage) => stage.id === id).cumulative;
+
+// The gauges' raw values and the stage their caption names.
+const GAUGES = `({
+  built: Number(document.getElementById("gauge-built").dataset.value),
+  builtCount: Number(document.getElementById("gauge-count").dataset.value),
+  source: Number(document.getElementById("gauge-source").dataset.value),
+  through: document.getElementById("gauge-through").textContent,
+})`;
 
 const DESKTOP = { width: 1400, height: 900 };
 const PHONE_WIDTHS = [360, 390, 768];
@@ -125,6 +144,44 @@ test("a #stage- fragment opens with that stage pinned", async () => {
   const state = await page.evaluate(STATE);
   assert.equal(state.pinned, "gcc46");
   assert.equal(state.card, "gcc46");
+  page.close();
+});
+
+// The gauges count through the stage the card shows. A pinned stage
+// deep in the chain sets them, not the stage at the reading line, and the
+// caption names it.
+test("the gauges count through the pinned stage", async () => {
+  const page = await browser.open(
+    "/#stage-hex2-1",
+    DESKTOP.width,
+    DESKTOP.height,
+  );
+  const gauges = await page.evaluate(GAUGES);
+  const expected = cumulativeOf("hex2-1");
+  assert.equal(gauges.built, expected.built);
+  assert.equal(gauges.builtCount, expected.builtCount);
+  assert.equal(gauges.source, expected.source);
+  assert.match(gauges.through, /hex2-1/);
+  page.close();
+});
+
+// Hovering a stage previews it on the gauges too; leaving the tower puts
+// them back on the stage at the reading line.
+test("the gauges follow a hovered stage and come back", async () => {
+  const page = await browser.open("/", DESKTOP.width, DESKTOP.height);
+  const m0 = await page.evaluate(rowCentre(5));
+  assert.equal(m0.id, "M0");
+  await page.move(OFF_TOWER.x, OFF_TOWER.y);
+  const reading = await page.evaluate(GAUGES);
+
+  await page.move(m0.x, m0.y);
+  const hovered = await page.evaluate(GAUGES);
+  assert.equal(hovered.built, cumulativeOf("M0").built);
+  assert.equal(hovered.builtCount, cumulativeOf("M0").builtCount);
+  assert.match(hovered.through, /M0/);
+
+  await page.move(OFF_TOWER.x, OFF_TOWER.y);
+  assert.deepEqual(await page.evaluate(GAUGES), reading);
   page.close();
 });
 

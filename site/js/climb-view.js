@@ -1,10 +1,10 @@
 // The climb: the chain drawn as a tower (tower-view.js), a card for one
-// stage, and gauges pinned above that count what has been built by the
-// stage at the reading line.
+// stage, and gauges pinned above that count everything built up to and
+// including that same stage.
 //
-// The card shows, in order of precedence: the stage under the pointer
-// while the pointer is on the tower, the pinned stage, and the stage at
-// the reading line. A click pins a stage and names it in the URL
+// The card and the gauges show, in order of precedence: the stage under
+// the pointer while the pointer is on the tower, the pinned stage, and
+// the stage at the reading line. A click pins a stage and names it in the URL
 // fragment; clicking it again or pressing Escape unpins it.
 
 import { el } from "./dom.js";
@@ -63,7 +63,7 @@ function handoffNote(handoff) {
 // The card for one stage. `onLink` is called with a stage id when one of
 // the card's links to another stage is followed; `handoff` is shown on
 // the last stage.
-function card(view, views, handoff, onLink) {
+function card(view, views, handoff, sourceFetched, onLink) {
   const link = (id, title) =>
     el(
       "a",
@@ -80,6 +80,7 @@ function card(view, views, handoff, onLink) {
     ["written in", view.writtenIn],
     view.reads ? ["reads", view.reads] : null,
     ["output", `${humanBytes(view.bytes)} (${count(view.bytes)} bytes)`],
+    sourceFetched > 0 ? ["source fetched", humanBytes(sourceFetched)] : null,
     [
       "built by",
       view.builtByTitle
@@ -161,9 +162,11 @@ export function renderClimb(views, { trustBytes, seedBytes, handoff }) {
   const built = document.getElementById("gauge-built");
   const builtCount = document.getElementById("gauge-count");
   const source = document.getElementById("gauge-source");
+  const through = document.getElementById("gauge-through");
   document.getElementById("gauge-trust").textContent = `${trustBytes} B`;
 
   const indexOf = new Map(views.map((view, index) => [view.id, index]));
+  const deltas = sourceDeltas(views);
   let tower = null;
   let inView = 0;
   let hovered = null;
@@ -181,8 +184,14 @@ export function renderClimb(views, { trustBytes, seedBytes, handoff }) {
     window.scrollTo({ top, behavior: reducedMotion() ? "auto" : "smooth" });
   }
 
+  // Set a gauge's text, and its raw value for anyone reading the page.
+  const gauge = (node, value, text) => {
+    node.textContent = text;
+    node.dataset.value = String(value);
+  };
+
   // Show the card for the hovered, pinned or read stage, outline it and
-  // its builder, and count what has been built by the stage being read.
+  // its builder, and count everything built up to and including it.
   function show() {
     const index = hovered ?? pinned ?? inView;
     tower.setFocus(index);
@@ -191,15 +200,22 @@ export function renderClimb(views, { trustBytes, seedBytes, handoff }) {
       shownCard = index;
       cardNode.dataset.stage = views[index].id;
       cardNode.replaceChildren(
-        ...card(views[index], views, handoff, follow).filter(Boolean),
+        ...card(views[index], views, handoff, deltas[index], follow).filter(
+          Boolean,
+        ),
       );
     }
 
-    const totals = views[inView].cumulative;
-    built.textContent = humanBytes(totals.built);
+    const totals = views[index].cumulative;
+    through.replaceChildren(
+      "through ",
+      el("strong", {}, views[index].title),
+      ", counting every stage above it",
+    );
+    gauge(built, totals.built, humanBytes(totals.built));
     built.title = `${count(totals.built)} bytes`;
-    builtCount.textContent = count(totals.builtCount);
-    source.textContent = humanBytes(totals.source);
+    gauge(builtCount, totals.builtCount, count(totals.builtCount));
+    gauge(source, totals.source, humanBytes(totals.source));
     source.title = `${count(totals.source)} bytes in ${count(totals.sourceCount)} fetched paths`;
   }
 
@@ -232,7 +248,7 @@ export function renderClimb(views, { trustBytes, seedBytes, handoff }) {
     tower = drawTower(svg, views, {
       trustBytes,
       seedBytes,
-      sourceDelta: sourceDeltas(views),
+      sourceDelta: deltas,
       onHover,
       onToggle,
     });
