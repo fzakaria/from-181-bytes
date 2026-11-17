@@ -1,0 +1,715 @@
+/* System fonts, one accent, dark mode via media query. The tokens and the
+   site chrome match seenix, nixpkgs-multiverse and trynix, so the sites
+   read as one family. */
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6a6a6a;
+  --line: #e0e0e0;
+  --accent: #4f6bed;
+  --code-bg: #f4f4f4;
+  --error: #c94f4f;
+  --ok: #2f8a4f;
+  --tint-a: #eef1fd;
+  --tint-b: #f7f7f5;
+  --hot: #ffd866;
+  --hot-line: #d9822b;
+  --era-hex: #b8641f;
+  --era-m2: #2f8a5f;
+  --era-mes: #8250c4;
+  --era-tcc: #2a74b8;
+  --era-gcc: #c0465f;
+  --era-cxx: #4f5fd0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --fg: #e6e6e6;
+    --muted: #9a9a9a;
+    --line: #33363d;
+    --accent: #8fa3ff;
+    --code-bg: #22252c;
+    --error: #e07070;
+    --ok: #6cc28a;
+    --tint-a: #1f2433;
+    --tint-b: #1c1e23;
+    --hot: #6b5a1e;
+    --hot-line: #f0a24a;
+    --era-hex: #e0904a;
+    --era-m2: #5cc08c;
+    --era-mes: #b18cf0;
+    --era-tcc: #62a8ec;
+    --era-gcc: #ec7590;
+    --era-cxx: #8f9cff;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0 auto;
+  padding: 1rem;
+  max-width: 72rem;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+}
+h1 {
+  font-size: 1.3rem;
+  margin: 0.2rem 0;
+}
+h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The site header: the title on the left, the destinations on the right.
+   Wraps to two lines on a narrow phone rather than shrinking. */
+header.site {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  margin: 0.2rem 0 0.6rem;
+}
+nav.site {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  font-size: 14px;
+}
+nav.site a {
+  color: var(--accent);
+  text-decoration: none;
+}
+nav.site a:hover {
+  text-decoration: underline;
+}
+h2 {
+  font-size: 1.1rem;
+  margin: 2rem 0 0.4rem;
+}
+h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 0.3rem;
+}
+a {
+  color: var(--accent);
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 13px;
+}
+.lede {
+  font-weight: 600;
+}
+.intro,
+#climb > p,
+#who > p,
+.roots p,
+.credits {
+  max-width: 46rem;
+}
+code {
+  font:
+    13px/1.5 ui-monospace,
+    monospace;
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  overflow-wrap: anywhere;
+}
+
+/* Tabs for the architecture and the system, the same as seenix's lanes. */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  margin: 0.4rem 0 0.8rem;
+  scrollbar-width: none;
+}
+.tabs button {
+  flex: 0 0 auto;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0.4rem 0.8rem;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
+/* The seed: a 16-column grid of bytes beside the hex0 source. */
+.seed-layout {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 52rem) {
+  .seed-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.seed-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 2.1rem);
+  gap: 2px;
+  font:
+    13px/1 ui-monospace,
+    monospace;
+}
+@media (max-width: 40rem) {
+  .seed-grid {
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+    font-size: 11px;
+  }
+}
+.seed-grid button {
+  padding: 0.45rem 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+.seed-grid button.tint-a {
+  background: var(--tint-a);
+}
+.seed-grid button.tint-b {
+  background: var(--tint-b);
+}
+.seed-grid button.same-line {
+  background: var(--hot);
+}
+.seed-grid button.active {
+  border-color: var(--accent);
+}
+.check.ok {
+  color: var(--ok);
+}
+.check.bad {
+  color: var(--error);
+}
+.byte-info {
+  min-height: 7.5rem;
+  max-width: 36rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.byte-info dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.1rem 0.8rem;
+  margin: 0;
+}
+.byte-info dt {
+  color: var(--muted);
+}
+.byte-info dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.seed-source {
+  position: relative;
+  margin: 0;
+  max-height: 34rem;
+  overflow: auto;
+  padding: 0.5rem 0;
+  background: var(--code-bg);
+  border-radius: 4px;
+  font:
+    12px/1.45 ui-monospace,
+    monospace;
+}
+.seed-source .line {
+  display: block;
+  padding: 0 0.6rem;
+  white-space: pre;
+}
+.seed-source .line.code {
+  cursor: pointer;
+}
+.seed-source .line.hot {
+  background: var(--hot);
+}
+.seed-source .num {
+  display: inline-block;
+  width: 2.6rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+/* The two-roots aside and the joke citation share a boxed style. */
+.roots,
+.citation {
+  margin: 1.5rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+.roots p {
+  margin: 0.4rem 0;
+}
+
+/* The climb: the gauges stay pinned while the picture scrolls past. */
+.gauges {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.6rem;
+  padding: 0.6rem 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.gauge {
+  display: flex;
+  flex-direction: column;
+}
+.gauge-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.gauge-value {
+  font:
+    600 1.15rem/1.2 ui-monospace,
+    monospace;
+}
+.milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.milestones button {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.milestones button.reached {
+  border-color: var(--accent);
+  color: var(--fg);
+  background: var(--tint-a);
+}
+
+/* The picture beside the card for the floor in view. On a phone the card
+   becomes a sheet pinned to the bottom of the screen. */
+.climb-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: 1.2rem;
+  align-items: start;
+  margin-top: 0.8rem;
+}
+.tower-wrap {
+  margin: 0;
+  min-width: 0;
+}
+.floor-card {
+  position: sticky;
+  top: 9rem;
+  max-height: calc(100vh - 10rem);
+  overflow: auto;
+  padding: 0.8rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+@media (max-width: 52rem) {
+  .climb-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .floor-card {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 4;
+    max-height: 38vh;
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 0.15);
+  }
+  .floor-card.in-view {
+    display: block;
+  }
+  .tower-wrap {
+    padding-bottom: 40vh;
+  }
+  .tower .title {
+    font-size: 12px;
+  }
+
+  /* Compact gauges: four small values on one line, the milestones in a
+     strip that scrolls sideways. */
+  .gauges {
+    gap: 0.2rem 0.9rem;
+    padding: 0.4rem 0;
+  }
+  .gauge-label {
+    font-size: 10px;
+  }
+  .gauge-value {
+    font-size: 0.9rem;
+  }
+  .milestones {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .milestones li {
+    flex: 0 0 auto;
+  }
+}
+.floor-card h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  margin: 0;
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--fg);
+}
+.floor-card .floor-number {
+  font:
+    12px ui-monospace,
+    monospace;
+  color: var(--muted);
+}
+.floor-card p {
+  margin: 0.4rem 0;
+}
+.card-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.badge {
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.05rem 0.9rem;
+  margin: 0.4rem 0;
+  font-size: 14px;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+details.also summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+}
+details.also p {
+  font-size: 13px;
+}
+.citation .kicker {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* The tower. Era colours are one hue per era at similar weight; bands
+   are the era at low opacity, cores at full. */
+.tower {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+  font-family: system-ui, sans-serif;
+}
+.tower .era-bg {
+  opacity: 0.07;
+}
+.tower .era-label {
+  font-size: 11px;
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4px;
+}
+.tower .row.seed .core {
+  fill: var(--fg);
+}
+.tower .hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.tower .row:focus {
+  outline: none;
+}
+.tower .row:focus .hit,
+.tower .row.focus .hit {
+  fill: var(--tint-a);
+}
+.tower .connector {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.tower .band {
+  opacity: 0.28;
+}
+.tower .source {
+  fill: var(--muted);
+  opacity: 0.45;
+}
+.tower .title {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--fg);
+}
+.tower .size {
+  font-size: 11px;
+  fill: var(--muted);
+}
+.tower .arc {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+.tower .arc.focus {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  opacity: 1;
+}
+.tower.focused .row:not(.focus):not(.builder):not(.related) .core {
+  opacity: 0.55;
+}
+.tower .row.builder .hit {
+  fill: var(--tint-b);
+  stroke: var(--accent);
+  stroke-dasharray: 3 3;
+}
+.tower .row.related .connector {
+  stroke: var(--accent);
+}
+.tower .trace-line {
+  fill: none;
+  stroke: var(--hot-line);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tower .arc.hop {
+  stroke: var(--hot-line);
+  stroke-width: 3;
+  opacity: 1;
+}
+.tower.tracing .row.hop .core {
+  stroke: var(--hot-line);
+  stroke-width: 2;
+}
+.tower.compact.tracing .row:not(.hop) {
+  opacity: 0.35;
+}
+
+.era-hex .band,
+.era-hex .core,
+.era-hex.era-bg,
+.era-text-hex {
+  fill: var(--era-hex);
+}
+.era-m2 .band,
+.era-m2 .core,
+.era-m2.era-bg,
+.era-text-m2 {
+  fill: var(--era-m2);
+}
+.era-mes .band,
+.era-mes .core,
+.era-mes.era-bg,
+.era-text-mes {
+  fill: var(--era-mes);
+}
+.era-tcc .band,
+.era-tcc .core,
+.era-tcc.era-bg,
+.era-text-tcc {
+  fill: var(--era-tcc);
+}
+.era-gcc .band,
+.era-gcc .core,
+.era-gcc.era-bg,
+.era-text-gcc {
+  fill: var(--era-gcc);
+}
+.era-cxx .band,
+.era-cxx .core,
+.era-cxx.era-bg,
+.era-text-cxx {
+  fill: var(--era-cxx);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tower .core,
+  .tower .arc,
+  .tower .hit {
+    transition:
+      opacity 0.15s,
+      fill 0.15s,
+      stroke-width 0.15s;
+  }
+}
+
+/* Who built you: the file picker beside the trace. */
+.who-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 52rem) {
+  .who-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.who-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+select,
+input {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font:
+    13px/1.5 ui-monospace,
+    monospace;
+}
+.who-list {
+  max-height: 24rem;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font:
+    12px/1.5 ui-monospace,
+    monospace;
+}
+.who-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.15rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.who-list button:hover,
+.who-list button.active {
+  background: var(--tint-a);
+}
+.who-list .path {
+  overflow-wrap: anywhere;
+}
+.who-list .size {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+.who-picture {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.who-mini {
+  min-width: 0;
+}
+.who-trace {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.who-trace li {
+  position: relative;
+  padding: 0 0 0.9rem 1.4rem;
+  border-left: 2px solid var(--line);
+  margin-left: 0.4rem;
+}
+.who-trace li::before {
+  content: "";
+  position: absolute;
+  left: -0.4rem;
+  top: 0.35rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.who-trace li.trace-actions::before {
+  display: none;
+}
+.trace-actions button {
+  padding: 0.2rem 0.6rem;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.who-trace li:last-child {
+  border-left-color: transparent;
+}
+.who-trace .via {
+  font-size: 13px;
+}
+
+.credits li {
+  margin: 0.3rem 0;
+}
+footer {
+  margin-top: 2rem;
+  border-top: 1px solid var(--line);
+}

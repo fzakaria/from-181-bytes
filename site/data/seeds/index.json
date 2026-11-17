@@ -1,0 +1,43 @@
+{
+  "nixpkgs": {
+    "rev": "6dadaf4375be35033e1c84395adbd53ff5fded96"
+  },
+  "arches": [
+    {
+      "name": "x86",
+      "system": "i686-linux",
+      "size": 181,
+      "source": "hex0_x86.hex0",
+      "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/x86/hex0-seed",
+      "hash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
+      "stage0Version": "1.9.1"
+    },
+    {
+      "name": "AMD64",
+      "system": "x86_64-linux",
+      "size": 229,
+      "source": "hex0_AMD64.hex0",
+      "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/AMD64/hex0-seed",
+      "hash": "sha256-DCzZduYrix9yOeJoem/Jhz/WDzAss7UWwjZbkXJq6Ms=",
+      "stage0Version": "1.9.1"
+    },
+    {
+      "name": "AArch64",
+      "system": "aarch64-linux",
+      "size": 526,
+      "source": "hex0_AArch64.hex0",
+      "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/AArch64/hex0-seed",
+      "hash": "sha256-XTPsoKeI6wTZAF0UwEJPzuHelWOJe//wXg4HYO0dEJo=",
+      "stage0Version": "1.9.1"
+    },
+    {
+      "name": "riscv64",
+      "system": "riscv64-linux",
+      "size": 392,
+      "source": "hex0_riscv64.hex0",
+      "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/riscv64/hex0-seed",
+      "hash": "sha256-BMgaiXD8bnxOTHal4RlmYKItuWUcDIwSrRuPVAnm/BE=",
+      "stage0Version": "1.9.1"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "//": "exists only so node treats site/js/*.js and tools/*.js as ES modules",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,206 @@
+{
+  "version": 4,
+  "derivations": {
+    "0lksyf9bnm4fla95lia3b274l0ishf7d-libgetopt.a-builder.drv": {
+      "args": [
+        "--verbose",
+        "--strict",
+        "--file",
+        "/nix/store/m48r7nsm8wgjy69jg442vc7jjdfmcnl7-write-text-file.kaem"
+      ],
+      "builder": "/nix/store/hqv8h6w14khjb53g28mqk2kb2d58x27h-kaem-1.9.1/bin/kaem",
+      "env": {
+        "PATH": "/nix/store/wrv08hp23d4r3y7im82mz9wagncycpzi-mescc-tools-extra-1.9.1/bin",
+        "builder": "/nix/store/hqv8h6w14khjb53g28mqk2kb2d58x27h-kaem-1.9.1/bin/kaem",
+        "destination": "",
+        "destinationDir": ".",
+        "name": "libgetopt.a-builder",
+        "out": "/nix/store/2q7n4j36vixh90i29aypw5la4hzlxgac-libgetopt.a-builder",
+        "passAsFile": "text",
+        "system": "i686-linux",
+        "text": "/nix/store/kw22a1jzn4bvlkn8v7wv1rnqijwj7b5i-tinycc-boot3-unstable-2024-07-07/bin/tcc -std=c11 -c /nix/store/vzhp2y100bx81z1j4plw9jcm80bjn3vy-mes-libc-0.27.1/lib/libgetopt.c\n/nix/store/kw22a1jzn4bvlkn8v7wv1rnqijwj7b5i-tinycc-boot3-unstable-2024-07-07/bin/tcc -ar cr ${out} libgetopt.o\n"
+      },
+      "inputs": {
+        "drvs": {
+          "8b67q6cv53n3gk1761nx2xbh85lscm4a-kaem-1.9.1.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "ahmpx314d3v4r2066mncifp21hdhj7fd-mes-libc-0.27.1.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "pz1z6acpb6x0gyrbysy9rs47vhn4qgzf-mescc-tools-extra-1.9.1.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "qshzii181zhz5g59w2rk4ksc1302iavi-tinycc-boot3-unstable-2024-07-07.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": [
+          "m48r7nsm8wgjy69jg442vc7jjdfmcnl7-write-text-file.kaem"
+        ]
+      },
+      "name": "libgetopt.a-builder",
+      "outputs": {
+        "out": {
+          "path": "2q7n4j36vixh90i29aypw5la4hzlxgac-libgetopt.a-builder"
+        }
+      },
+      "system": "i686-linux",
+      "version": 4
+    },
+    "7v0v3kw2jiid9kb86z9y5vhjnpxiyv6q-hex1-1.9.1.drv": {
+      "args": [
+        "/nix/store/4f7nm8dblrdy74gmsl62b25rjrh4jcz3-stage0-posix-1.9.1-source/x86/hex1_x86.hex0",
+        "/1rz4g4znpzjwh1xymhjpm42vipw92pr73vdgl6xs1hycac8kf2n9"
+      ],
+      "builder": "/nix/store/zy90xm59y8syfzyfhxji4rrzfxbdl9sn-hex0-1.9.1",
+      "env": {
+        "builder": "/nix/store/zy90xm59y8syfzyfhxji4rrzfxbdl9sn-hex0-1.9.1",
+        "name": "hex1-1.9.1",
+        "out": "/nix/store/c2plnpd41cgf3mypqy4gxihcivld8p3h-hex1-1.9.1",
+        "pname": "hex1",
+        "system": "i686-linux",
+        "version": "1.9.1"
+      },
+      "inputs": {
+        "drvs": {
+          "dhpvfy772qdp7sqmgrmac8wzxb84bchh-stage0-posix-1.9.1-source.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "rj9f41bs41c91z7hl769awsvaw438h3a-hex0-1.9.1.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": []
+      },
+      "name": "hex1-1.9.1",
+      "outputs": {
+        "out": {
+          "path": "c2plnpd41cgf3mypqy4gxihcivld8p3h-hex1-1.9.1"
+        }
+      },
+      "system": "i686-linux",
+      "version": 4
+    },
+    "dhpvfy772qdp7sqmgrmac8wzxb84bchh-stage0-posix-1.9.1-source.drv": {
+      "args": [],
+      "builder": "#\n#\n# Neither your store nor your substituters seems to have:\n#\n#  /1rz4g4znpzjwh1xymhjpm42vipw92pr73vdgl6xs1hycac8kf2n9\n#\n# You can create this path from an already-bootstrapped nixpkgs\n# using the following command:\n#\n#   nix-build '<nixpkgs>' -A make-minimal-bootstrap-sources\n#\n# Or, if you prefer, you can create this file using only `git`,\n# `nix`, and `xz`.  For the commands needed in order to do this,\n# see `make-bootstrap-sources.nix`.  Once you have the manual\n# result, do:\n#\n#   nix-store --add-fixed --recursive sha256 ./stage0-posix-1.9.1-source\n#\n# to add it to your store.\n",
+      "env": {
+        "builder": "#\n#\n# Neither your store nor your substituters seems to have:\n#\n#  /1rz4g4znpzjwh1xymhjpm42vipw92pr73vdgl6xs1hycac8kf2n9\n#\n# You can create this path from an already-bootstrapped nixpkgs\n# using the following command:\n#\n#   nix-build '<nixpkgs>' -A make-minimal-bootstrap-sources\n#\n# Or, if you prefer, you can create this file using only `git`,\n# `nix`, and `xz`.  For the commands needed in order to do this,\n# see `make-bootstrap-sources.nix`.  Once you have the manual\n# result, do:\n#\n#   nix-store --add-fixed --recursive sha256 ./stage0-posix-1.9.1-source\n#\n# to add it to your store.\n",
+        "name": "stage0-posix-1.9.1-source",
+        "out": "/nix/store/4f7nm8dblrdy74gmsl62b25rjrh4jcz3-stage0-posix-1.9.1-source",
+        "outputHash": "sha256-UNoyb2teqH26VM7YoOcazyqZ0AlDae045aWc31ZHFdw=",
+        "outputHashAlgo": "sha256",
+        "outputHashMode": "recursive",
+        "system": "i686-linux"
+      },
+      "inputs": {
+        "drvs": {},
+        "srcs": []
+      },
+      "name": "stage0-posix-1.9.1-source",
+      "outputs": {
+        "out": {
+          "hash": "sha256-UNoyb2teqH26VM7YoOcazyqZ0AlDae045aWc31ZHFdw=",
+          "method": "nar"
+        }
+      },
+      "system": "i686-linux",
+      "version": 4
+    },
+    "rj9f41bs41c91z7hl769awsvaw438h3a-hex0-1.9.1.drv": {
+      "args": [
+        "/nix/store/4f7nm8dblrdy74gmsl62b25rjrh4jcz3-stage0-posix-1.9.1-source/x86/hex0_x86.hex0",
+        "/1rz4g4znpzjwh1xymhjpm42vipw92pr73vdgl6xs1hycac8kf2n9"
+      ],
+      "builder": "/nix/store/m84vkj8ac8p5p2hdqm2cqmvyicv1mfj9-hex0-seed",
+      "env": {
+        "builder": "/nix/store/m84vkj8ac8p5p2hdqm2cqmvyicv1mfj9-hex0-seed",
+        "name": "hex0-1.9.1",
+        "out": "/nix/store/zy90xm59y8syfzyfhxji4rrzfxbdl9sn-hex0-1.9.1",
+        "outputHash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
+        "outputHashAlgo": "sha256",
+        "outputHashMode": "recursive",
+        "pname": "hex0",
+        "system": "i686-linux",
+        "version": "1.9.1"
+      },
+      "inputs": {
+        "drvs": {
+          "dhpvfy772qdp7sqmgrmac8wzxb84bchh-stage0-posix-1.9.1-source.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          },
+          "xcsjnk8ph1yvd1wnl3vqmyd9gc07mbnc-hex0-seed.drv": {
+            "dynamicOutputs": {},
+            "outputs": [
+              "out"
+            ]
+          }
+        },
+        "srcs": []
+      },
+      "name": "hex0-1.9.1",
+      "outputs": {
+        "out": {
+          "hash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
+          "method": "nar"
+        }
+      },
+      "system": "i686-linux",
+      "version": 4
+    },
+    "xcsjnk8ph1yvd1wnl3vqmyd9gc07mbnc-hex0-seed.drv": {
+      "args": [],
+      "builder": "builtin:fetchurl",
+      "env": {
+        "builder": "builtin:fetchurl",
+        "executable": "1",
+        "impureEnvVars": "http_proxy https_proxy ftp_proxy all_proxy no_proxy",
+        "name": "hex0-seed",
+        "out": "/nix/store/m84vkj8ac8p5p2hdqm2cqmvyicv1mfj9-hex0-seed",
+        "outputHash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
+        "outputHashAlgo": "",
+        "outputHashMode": "recursive",
+        "preferLocalBuild": "1",
+        "system": "builtin",
+        "unpack": "",
+        "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/x86/hex0-seed",
+        "urls": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/x86/hex0-seed"
+      },
+      "inputs": {
+        "drvs": {},
+        "srcs": []
+      },
+      "name": "hex0-seed",
+      "outputs": {
+        "out": {
+          "hash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
+          "method": "nar"
+        }
+      },
+      "system": "builtin",
+      "version": 4
+    }
+  }
+}
