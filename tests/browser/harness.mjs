@@ -129,7 +129,11 @@ export async function launch() {
   return {
     open,
     async close() {
+      // Wait for Chromium to exit before removing its profile, which it
+      // writes to until it is gone.
+      const exited = new Promise((resolve) => chrome.once("exit", resolve));
       chrome.kill();
+      await exited;
       await site.close();
       await rm(profile, { recursive: true, force: true });
     },

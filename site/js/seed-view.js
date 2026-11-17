@@ -38,6 +38,14 @@ function highlighted(words) {
   );
 }
 
+// Whether selecting a byte may scroll the source pane to its line. A
+// byte picked in the grid may; a line picked in the pane is already
+// under the pointer, and scrolling would slide another line under it.
+const PaneScroll = Object.freeze({
+  IF_HIDDEN: "if-hidden",
+  NEVER: "never",
+});
+
 // One observer for the listing pane; it re-hangs whichever source is
 // shown when the pane changes width.
 let rehang = () => {};
@@ -106,9 +114,10 @@ export function renderSeed({ seed, source, arch }) {
       {
         class: tint ? "tint-a" : "tint-b",
         "aria-label": `byte ${offset}: ${hex2(value)}`,
-        onmouseenter: () => select(offset),
-        onfocus: () => select(offset),
-        onclick: () => select(offset),
+        "data-line": line,
+        onmouseenter: () => select(offset, PaneScroll.IF_HIDDEN),
+        onfocus: () => select(offset, PaneScroll.IF_HIDDEN),
+        onclick: () => select(offset, PaneScroll.IF_HIDDEN),
       },
       hex2(value),
     );
@@ -135,8 +144,12 @@ export function renderSeed({ seed, source, arch }) {
       "span",
       {
         class: produced ? "line code" : "line",
-        onmouseenter: produced ? () => select(bytesOfLine.get(index)[0]) : null,
-        onclick: produced ? () => select(bytesOfLine.get(index)[0]) : null,
+        onmouseenter: produced
+          ? () => select(bytesOfLine.get(index)[0], PaneScroll.NEVER)
+          : null,
+        onclick: produced
+          ? () => select(bytesOfLine.get(index)[0], PaneScroll.NEVER)
+          : null,
       },
       el("span", { class: "num" }, String(index + 1)),
       segments.flatMap(({ node, gap }) => [node, gap || null]),
@@ -169,9 +182,40 @@ export function renderSeed({ seed, source, arch }) {
   let hot = [];
   let hotLine = null;
 
+  // While the reader scrolls the pane themselves, by wheel, touch or the
+  // scrollbar, the page leaves the pane alone until the pointer is back
+  // on the grid. Handlers are assigned, not added, so a second render
+  // replaces them.
+  let readerScrolling = false;
+  const readerScrolls = () => {
+    readerScrolling = true;
+  };
+  pre.onwheel = readerScrolls;
+  pre.ontouchstart = readerScrolls;
+  pre.onpointerdown = readerScrolls;
+  grid.onpointerenter = () => {
+    readerScrolling = false;
+  };
+
+  // Bring a line into the pane with one instant move, centred, and only
+  // when it is not already wholly in view. The page never moves.
+  function reveal(lineNode) {
+    if (readerScrolling) {
+      return;
+    }
+    const top = lineNode.offsetTop;
+    const bottom = top + lineNode.offsetHeight;
+    const viewTop = pre.scrollTop;
+    const viewBottom = viewTop + pre.clientHeight;
+    if (top >= viewTop && bottom <= viewBottom) {
+      return;
+    }
+    pre.scrollTop = top - (pre.clientHeight - lineNode.offsetHeight) / 2;
+  }
+
   // Highlight a byte, the other bytes from its line and the line itself,
   // and describe it.
-  function select(offset) {
+  function select(offset, paneScroll) {
     const line = lines[offset];
     for (const index of hot) {
       buttons[index].classList.remove("same-line", "active");
@@ -186,8 +230,9 @@ export function renderSeed({ seed, source, arch }) {
     hotLine = lineNodes[line];
     hotLine.classList.add("hot");
 
-    // Scroll the source pane only, never the page.
-    pre.scrollTop = hotLine.offsetTop - pre.clientHeight / 2;
+    if (paneScroll === PaneScroll.IF_HIDDEN) {
+      reveal(hotLine);
+    }
 
     const parts = describeLine(text[line]);
     const value = seed[offset];
@@ -219,5 +264,5 @@ export function renderSeed({ seed, source, arch }) {
     );
   }
 
-  select(0);
+  select(0, PaneScroll.IF_HIDDEN);
 }
