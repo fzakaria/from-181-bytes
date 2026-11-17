@@ -25,8 +25,9 @@ data fails `nix flake check` rather than deploying.
 
 - `seeds/index.json`, `seeds/x86.bin`, `seeds/hex0_x86.hex0`: the
   `i686-linux` hex0 seed, the hex0 source it must reproduce, the URL
-  nixpkgs fetches it from and the hash it checks. The page maps bytes to
-  source lines itself, by assembling the source in the browser.
+  nixpkgs fetches it from and the hash it checks. Its `files` entry names
+  the two files the page fetches. The page maps bytes to source lines
+  itself, by assembling the source in the browser.
 - `chain.json`: for `i686-linux`, every derivation in the build graph of
   `minimal-bootstrap.gcc-glibc-unwrapped`, the last stage, with the
   stages, who built each derivation, running totals, each stage's
@@ -35,6 +36,13 @@ data fails `nix flake check` rather than deploying.
   takes GCC 16 and glibc through. The wrapper is shell scripts and
   symlinks that bash writes, so it is not a stage, and it is outside the
   graph: the totals end at the last stage and do not count it.
+
+In the built site every data file is renamed `name.<hash>.ext` and every
+reference to it rewritten (`nix/site.nix`), because GitHub Pages lets
+browsers cache files for ten minutes and a fixed name could pair one
+deploy's page with another's data. `checks.site` (`tools/check-site.mjs`)
+fails if the built site names a data file without its hash. The
+checkout's `site/` keeps the plain names, so serving it directly works.
 
 ## What the numbers mean
 

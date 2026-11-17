@@ -217,8 +217,8 @@ const { seed: entry } = JSON.parse(
   readFileSync(`${seedsDir}index.json`, "utf8"),
 );
 test(`${entry.source} reproduces the ${entry.size} byte ${entry.arch} seed`, () => {
-  const seed = readFileSync(`${seedsDir}${entry.arch}.bin`);
-  const source = readFileSync(`${seedsDir}${entry.source}`, "utf8");
+  const seed = readFileSync(`${seedsDir}${entry.files.binary}`);
+  const source = readFileSync(`${seedsDir}${entry.files.source}`, "utf8");
   const { bytes, lines } = assemble(source);
 
   assert.equal(seed.length, entry.size);

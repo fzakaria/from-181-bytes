@@ -6,7 +6,8 @@
 #                    committed data's invariants
 #   checks.browser   the page in headless Chromium: hover, pin, and no
 #                    sideways scroll
-#   checks.site      the deployable tree assembles
+#   checks.site      the deployable tree assembles, and every data file
+#                    it fetches has a content hash in its name
 #   checks.data-pin  site/data describes the nixpkgs flake.lock pins
 #
 # The data itself is not regenerated here; docs/data.md says why.

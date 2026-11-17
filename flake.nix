@@ -78,13 +78,14 @@
           site = self.packages.${system}.site;
         in
         {
-          # the site assembles: the entry page, the hashed module tree and
-          # the data it fetches are where the build put them
-          site = pkgs.runCommand "from-181-bytes-site-check" { } ''
+          # the site assembles: the entry page and the hashed module tree
+          # are where the build put them, and every data file the modules
+          # fetch carries its content hash in its name, so a browser's
+          # cache never mixes two deploys (tools/check-site.mjs)
+          site = pkgs.runCommand "from-181-bytes-site-check" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
             test -f ${site}/index.html
             test -f ${site}/js.*/app.js
-            test -f ${site}/data/seeds/index.json
-            test -f ${site}/data/chain.json
+            node ${./tools/check-site.mjs} ${site}
             touch $out
           '';
 

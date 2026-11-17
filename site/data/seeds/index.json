@@ -7,6 +7,10 @@
     "system": "i686-linux",
     "size": 181,
     "source": "hex0_x86.hex0",
+    "files": {
+      "binary": "x86.bin",
+      "source": "hex0_x86.hex0"
+    },
     "url": "https://github.com/oriansj/bootstrap-seeds/raw/cedec6b8066d1db229b6c77d42d120a23c6980ed/POSIX/x86/hex0-seed",
     "hash": "sha256-DFmSpy4EYoKBSuPQRqtTsUfIUjlg794PnMrEg5stOFY=",
     "stage0Version": "1.9.1"

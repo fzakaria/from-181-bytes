@@ -7,7 +7,13 @@ import { stageViews } from "./view.js";
 import { renderSeed } from "./seed-view.js";
 import { renderClimb } from "./climb-view.js";
 
+// The data the page fetches. nix/site.nix rewrites these two names, and
+// the seed index's `files`, to content-hashed ones, so a browser holding
+// one deploy's page never fetches another deploy's data.
 const DATA = "data";
+const SEED_INDEX = "seeds/index.json";
+const CHAIN = "chain.json";
+const SEEDS = "seeds";
 const NIXPKGS_COMMIT_URL = "https://github.com/NixOS/nixpkgs/commit/";
 const SHORT_REV = 7;
 
@@ -20,11 +26,11 @@ const fetchBytes = async (path) =>
   new Uint8Array(await (await fetch(`${DATA}/${path}`)).arrayBuffer());
 const fetchText = async (path) => (await fetch(`${DATA}/${path}`)).text();
 
-const { seed: entry } = await fetchJson("seeds/index.json");
+const { seed: entry } = await fetchJson(SEED_INDEX);
 const [seed, source, chain] = await Promise.all([
-  fetchBytes(`seeds/${entry.arch}.bin`),
-  fetchText(`seeds/${entry.source}`),
-  fetchJson("chain.json"),
+  fetchBytes(`${SEEDS}/${entry.files.binary}`),
+  fetchText(`${SEEDS}/${entry.files.source}`),
+  fetchJson(CHAIN),
 ]);
 
 // The seed explorer, and where the seed comes from.

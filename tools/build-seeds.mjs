@@ -15,6 +15,12 @@ const index = {
     system: seed.system,
     size: statSync(`${outDir}/${seed.arch}.bin`).size,
     source: `hex0_${seed.arch}.hex0`,
+    // The files the page fetches, relative to seeds/. nix/site.nix
+    // rewrites these to content-hashed names.
+    files: {
+      binary: `${seed.arch}.bin`,
+      source: `hex0_${seed.arch}.hex0`,
+    },
     url: seed.url,
     hash: seed.hash,
     stage0Version: seed.version,
