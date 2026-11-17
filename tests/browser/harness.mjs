@@ -35,6 +35,13 @@ const DEVTOOLS_POLL_MS = 100;
 const DEVTOOLS_ATTEMPTS = 100;
 const SETTLE_MS = 1500;
 
+// Closing: how long Chromium gets to shut down all its processes before
+// it is killed, and how hard removing its profile is retried while the
+// last of them let go of it.
+const CLOSE_TIMEOUT_MS = 5000;
+const RM_RETRIES = 10;
+const RM_RETRY_MS = 200;
+
 // Serve site/ on a free port. Resolves to { url, close }.
 async function serve() {
   const server = createServer(async (request, response) => {
@@ -129,13 +136,30 @@ export async function launch() {
   return {
     open,
     async close() {
-      // Wait for Chromium to exit before removing its profile, which it
-      // writes to until it is gone.
+      // Ask Chromium to close over DevTools, which shuts down its helper
+      // processes too, and wait for it to exit; kill it if it hangs. Its
+      // processes write to the profile until they are gone.
       const exited = new Promise((resolve) => chrome.once("exit", resolve));
-      chrome.kill();
+      const browser = await connect(endpoint);
+      browser.send("Browser.close");
+      const timer = setTimeout(() => chrome.kill("SIGKILL"), CLOSE_TIMEOUT_MS);
       await exited;
+      clearTimeout(timer);
       await site.close();
-      await rm(profile, { recursive: true, force: true });
+
+      // A straggling helper can still hold the profile for a moment, so
+      // removal is retried. If it still fails the tests have passed and
+      // the temporary directory is left for the sandbox to clear.
+      try {
+        await rm(profile, {
+          recursive: true,
+          force: true,
+          maxRetries: RM_RETRIES,
+          retryDelay: RM_RETRY_MS,
+        });
+      } catch (error) {
+        console.warn(`left ${profile}: ${error.message}`);
+      }
     },
   };
 }
