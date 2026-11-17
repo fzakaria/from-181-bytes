@@ -128,16 +128,16 @@ code {
   overflow-wrap: anywhere;
 }
 
-/* Tabs for the architecture and the system, the same as seenix's lanes. */
+/* Tabs for the architecture and the system, the same as seenix's lanes.
+   On a narrow screen they wrap onto a second row rather than scroll. */
 .tabs {
   display: flex;
-  overflow-x: auto;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--line);
   margin: 0.4rem 0 0.8rem;
-  scrollbar-width: none;
 }
 .tabs button {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   background: none;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -150,11 +150,18 @@ code {
   color: var(--fg);
   border-bottom-color: var(--accent);
 }
+@media (max-width: 40rem) {
+  .tabs button {
+    padding: 0.35rem 0.55rem;
+  }
+}
 
-/* The seed: a 16-column grid of bytes beside the hex0 source. */
+/* The seed: a 16-column grid of bytes beside the hex0 source. The grid's
+   column is as wide as the grid; the text under it wraps to fit, and the
+   source takes the rest. */
 .seed-layout {
   display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  grid-template-columns: min-content minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -165,7 +172,7 @@ code {
 }
 .seed-grid {
   display: grid;
-  grid-template-columns: repeat(16, 2.1rem);
+  grid-template-columns: repeat(16, 2rem);
   gap: 2px;
   font:
     13px/1 ui-monospace,
@@ -223,11 +230,17 @@ code {
   margin: 0;
   overflow-wrap: anywhere;
 }
+/* The source wraps rather than scrolling sideways. Each line hangs its
+   continuation rows --hang columns in from the end of the line-number
+   gutter (seed-view.js picks the column), so numbers and hex stay in
+   their columns. */
 .seed-source {
+  --gutter: 5;
   position: relative;
   margin: 0;
   max-height: 34rem;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 0.5rem 0;
   background: var(--code-bg);
   border-radius: 4px;
@@ -237,7 +250,18 @@ code {
 }
 .seed-source .line {
   display: block;
-  padding: 0 0.6rem;
+  padding: 0 0.6rem 0 calc(0.6rem + (var(--gutter) + var(--hang, 0)) * 1ch);
+  text-indent: calc((var(--gutter) + var(--hang, 0)) * -1ch);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.seed-source .seg.whole {
+  display: inline-block;
+  text-indent: 0;
+}
+.seed-source .probe {
+  position: absolute;
+  visibility: hidden;
   white-space: pre;
 }
 .seed-source .line.code {
@@ -248,9 +272,15 @@ code {
 }
 .seed-source .num {
   display: inline-block;
-  width: 2.6rem;
+  width: calc(var(--gutter) * 1ch);
+  text-indent: 0;
   color: var(--muted);
   user-select: none;
+}
+
+/* The provenance line carries a base64 hash with no break in it. */
+.provenance {
+  overflow-wrap: anywhere;
 }
 
 /* The two-roots aside and the joke citation share a boxed style. */
@@ -351,7 +381,7 @@ code {
     bottom: 0;
     top: auto;
     z-index: 4;
-    max-height: 38vh;
+    max-height: min(38vh, 20rem);
     border-radius: 10px 10px 0 0;
     box-shadow: 0 -4px 16px rgb(0 0 0 / 0.15);
   }
@@ -359,14 +389,14 @@ code {
     display: block;
   }
   .tower-wrap {
-    padding-bottom: 40vh;
+    padding-bottom: min(40vh, 21rem);
   }
   .tower .title {
     font-size: 12px;
   }
 
-  /* Compact gauges: four small values on one line, the milestones in a
-     strip that scrolls sideways. */
+  /* Compact gauges: four small values on one line, the milestones as
+     small chips that wrap. */
   .gauges {
     gap: 0.2rem 0.9rem;
     padding: 0.4rem 0;
@@ -378,12 +408,11 @@ code {
     font-size: 0.9rem;
   }
   .milestones {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
+    gap: 0.2rem;
   }
-  .milestones li {
-    flex: 0 0 auto;
+  .milestones button {
+    padding: 0 0.4rem;
+    font-size: 11px;
   }
 }
 .floor-card h3 {
@@ -467,9 +496,6 @@ details.also p {
   stroke: var(--bg);
   stroke-width: 4px;
 }
-.tower .row.seed .core {
-  fill: var(--fg);
-}
 .tower .hit {
   fill: transparent;
   cursor: pointer;
@@ -545,36 +571,42 @@ details.also p {
 
 .era-hex .band,
 .era-hex .core,
+.era-hex .byte,
 .era-hex.era-bg,
 .era-text-hex {
   fill: var(--era-hex);
 }
 .era-m2 .band,
 .era-m2 .core,
+.era-m2 .byte,
 .era-m2.era-bg,
 .era-text-m2 {
   fill: var(--era-m2);
 }
 .era-mes .band,
 .era-mes .core,
+.era-mes .byte,
 .era-mes.era-bg,
 .era-text-mes {
   fill: var(--era-mes);
 }
 .era-tcc .band,
 .era-tcc .core,
+.era-tcc .byte,
 .era-tcc.era-bg,
 .era-text-tcc {
   fill: var(--era-tcc);
 }
 .era-gcc .band,
 .era-gcc .core,
+.era-gcc .byte,
 .era-gcc.era-bg,
 .era-text-gcc {
   fill: var(--era-gcc);
 }
 .era-cxx .band,
 .era-cxx .core,
+.era-cxx .byte,
 .era-cxx.era-bg,
 .era-text-cxx {
   fill: var(--era-cxx);
@@ -652,9 +684,13 @@ input {
 .who-list .path {
   overflow-wrap: anywhere;
 }
+/* A symlink's size column is its target, a whole store path; it wraps
+   rather than pushing the row wider than the list. */
 .who-list .size {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   color: var(--muted);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 .who-picture {
   display: grid;
@@ -669,6 +705,7 @@ input {
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow-wrap: anywhere;
 }
 .who-trace li {
   position: relative;

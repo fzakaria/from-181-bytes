@@ -74,12 +74,14 @@ async function showSystem(system) {
   markSystem(system);
   remember("system", system);
 
-  const [chain, files] = await Promise.all([
+  const [chain, files, seed] = await Promise.all([
     fetchJson(`chain-${system}.json`),
     fetchJson(`files-${system}.json`),
+    fetch(`${DATA}/seeds/${arch}.bin`).then((r) => r.arrayBuffer()),
   ]);
   const views = floorViews(floors, chain);
   const trustBytes = archByName.get(arch).size;
+  const seedBytes = new Uint8Array(seed);
 
   document.getElementById("intro-system").textContent = system;
   document.getElementById("intro-size").textContent = String(trustBytes);
@@ -88,7 +90,7 @@ async function showSystem(system) {
   rev.href = `https://github.com/NixOS/nixpkgs/tree/${chain.nixpkgs.rev}`;
 
   climb?.stop();
-  climb = renderClimb(views, { trustBytes });
+  climb = renderClimb(views, { trustBytes, seedBytes });
   renderWho(
     chain,
     files,
@@ -96,6 +98,7 @@ async function showSystem(system) {
     {
       views,
       trustBytes,
+      seedBytes,
       onTrace: (floorIds) => climb.setTrace(floorIds),
     },
   );

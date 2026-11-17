@@ -28,6 +28,9 @@ the same picture.
 
 The chain is drawn as a tower in SVG, one row per floor:
 
+- the **seed row** at the top is twice as tall and draws the seed itself:
+  one cell per byte, filled row by row in the hex era's colour, darker
+  for larger values, inside the seed's log-scaled width;
 - the **band** is everything built so far, on a log10 scale from the seed
   to the last floor's total, so the tower visibly widens from 181 bytes to
   1.6 GiB and never narrows;
@@ -41,11 +44,17 @@ The chain is drawn as a tower in SVG, one row per floor:
   C, GCC with C++.
 
 The geometry is `site/js/tower.js`, pure functions under
-`tests/tower.test.mjs`; `tower-view.js` draws it. There is no graph
-library. Every floor has exactly one builder, so the graph the picture
-shows is a tree laid along a known order, and an arc diagram needs no
-layout algorithm. seenix and the other sites ship vanilla modules with
-no CDN dependency; this keeps that.
+`tests/tower.test.mjs`; `tower-view.js` draws it. The label column is
+measured in the page, and the bands take what the arcs and labels leave,
+so the picture fits a 360 pixel phone without scrolling sideways. The
+hex0 listing beside the seed wraps for the same reason: each line hangs
+its continuation rows from the rightmost of its own columns (the hex,
+the `;` or the `#`) that leaves room to read, and `tests/hex0.test.mjs`
+covers how that column is picked. There is no graph library. Every
+floor has exactly one builder, so the graph the picture shows is a tree
+laid along a known order, and an arc diagram needs no layout algorithm.
+seenix and the other sites ship vanilla modules with no CDN dependency;
+this keeps that.
 
 A card beside the picture describes the floor at the reading line, just
 under the pinned gauges, and follows the scroll. Hovering or tapping a row

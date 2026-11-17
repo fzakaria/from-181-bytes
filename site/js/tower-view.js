@@ -4,7 +4,14 @@
 // builder per floor, so an arc diagram along a tower needs no graph
 // layout.
 
-import { towerLayout, eraSpans } from "./tower.js";
+import {
+  towerLayout,
+  eraSpans,
+  towerGeometry,
+  byteMapLayout,
+  TowerKind,
+  WIDE,
+} from "./tower.js";
 import { humanBytes } from "./format.js";
 import { ERAS } from "./floors.js";
 
@@ -12,11 +19,18 @@ const ERA_LABEL = new Map(ERAS.map((era) => [era.id, era.label]));
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-// Room on the right of the bands for the source layer, then labels.
-const SOURCE_COLUMN = 34;
-const LABEL_GAP = 10;
-// Widths above which the labels get their own column at full size.
-const WIDE = 560;
+// The share of a row's height its band and core fill, and the share of
+// the seed row its byte map fills.
+const BAND_FILL = 0.64;
+const SEED_FILL = 0.8;
+
+// The seed's byte map: below this cell size the map is a smudge and the
+// seed is drawn as a plain core. Each cell leaves a gap of CELL_GAP of its
+// size, and its fill runs from MIN_BYTE_OPACITY for 0x00 to full for 0xFF.
+const MIN_CELL = 1.5;
+const CELL_GAP = 0.18;
+const MIN_BYTE_OPACITY = 0.15;
+const MAX_BYTE = 0xff;
 
 function svgEl(tag, attrs = {}, text = null) {
   const node = document.createElementNS(SVG_NS, tag);
@@ -29,54 +43,112 @@ function svgEl(tag, attrs = {}, text = null) {
   return node;
 }
 
-// Geometry for a container `width` wide. A compact tower (the one beside
-// "who built you?") has short rows and no labels.
-function geometryFor(width, compact) {
-  if (compact) {
-    return {
-      rowHeight: 16,
-      arcSpace: 56,
-      minBand: 6,
-      maxBand: Math.max(60, width - 56 - 16),
-      labels: false,
-    };
+// The widest of `texts` drawn in `svg` with `className`, in pixels.
+// Measured in the page so the label column fits the fonts in use.
+function widestText(svg, texts, className) {
+  const probe = svgEl("text", { class: className, x: 0, y: 0 });
+  svg.append(probe);
+  let widest = 0;
+  for (const text of texts) {
+    probe.textContent = text;
+    widest = Math.max(widest, probe.getComputedTextLength());
   }
-  const arcSpace = width >= WIDE ? 96 : 52;
-  const labelWidth = width >= WIDE ? 220 : 150;
-  const maxBand = Math.max(
-    80,
-    Math.min(320, width - arcSpace - SOURCE_COLUMN - LABEL_GAP - labelWidth),
-  );
-  return {
-    rowHeight: width >= WIDE ? 46 : 42,
-    arcSpace,
-    minBand: 6,
-    maxBand,
-    labels: true,
-  };
+  probe.remove();
+  return widest;
+}
+
+// The size line under a floor's title. The milestone rides on it only
+// where there is room; on a phone the chips above the picture carry it.
+function sizeLine(view, index, trustBytes, width) {
+  const produced =
+    index === 0 ? `${trustBytes} B trusted` : `${humanBytes(view.bytes)} out`;
+  if (!view.milestone || width < WIDE) {
+    return produced;
+  }
+  return `${produced} · ${view.milestone}`;
+}
+
+// The seed drawn as what it is: one cell per byte, filled row by row in
+// the seed's era colour, darker for larger values, over the band. Falls
+// back to a plain core when the cells would be too small to see.
+function seedBytesNodes(bytes, { axis, mid, width, height }) {
+  const map = byteMapLayout(bytes.length, width, height);
+  if (map.cell < MIN_CELL) {
+    return null;
+  }
+  const left = axis - (map.cols * map.cell) / 2;
+  const top = mid - (map.rows * map.cell) / 2;
+  const gap = map.cell * CELL_GAP;
+  const nodes = [
+    svgEl("rect", {
+      x: left,
+      y: top,
+      width: map.cols * map.cell,
+      height: map.rows * map.cell,
+      rx: 1,
+      class: "band",
+    }),
+  ];
+  bytes.forEach((value, offset) => {
+    nodes.push(
+      svgEl("rect", {
+        x: left + (offset % map.cols) * map.cell + gap / 2,
+        y: top + Math.floor(offset / map.cols) * map.cell + gap / 2,
+        width: map.cell - gap,
+        height: map.cell - gap,
+        "fill-opacity":
+          MIN_BYTE_OPACITY + (1 - MIN_BYTE_OPACITY) * (value / MAX_BYTE),
+        class: "byte",
+      }),
+    );
+  });
+  return nodes;
 }
 
 // Draw `views` into `svg`. `sourceDelta[i]` is the source fetched at
-// floor i. Returns { setFocus, setTrace }, both taking a floor index (or
-// list of floor ids) or null.
+// floor i, `seedBytes` the seed itself for the seed row's byte map.
+// Returns { setFocus, setTrace }, both taking a floor index (or list of
+// floor ids) or null.
 export function drawTower(
   svg,
   views,
-  { trustBytes, sourceDelta, compact = false, onPick = null },
+  {
+    trustBytes,
+    seedBytes = null,
+    sourceDelta,
+    kind = TowerKind.FULL,
+    onPick = null,
+  },
 ) {
+  const compact = kind === TowerKind.COMPACT;
   const width = svg.parentElement.clientWidth;
-  const geometry = geometryFor(width, compact);
+  svg.replaceChildren();
+
+  // The label column is as wide as the widest title or size line.
+  const sizes = views.map((view, index) =>
+    sizeLine(view, index, trustBytes, width),
+  );
+  const labelWidth = compact
+    ? 0
+    : Math.ceil(
+        Math.max(
+          widestText(
+            svg,
+            views.map((view) => view.title),
+            "title",
+          ),
+          widestText(svg, sizes, "size"),
+        ),
+      );
+  const geometry = towerGeometry(width, { kind, labelWidth });
   const { rows, arcs, height } = towerLayout(views, {
     trustBytes,
     ...geometry,
-    width,
   });
   const axis = geometry.arcSpace + geometry.maxBand / 2;
-  const sourceX = geometry.arcSpace + geometry.maxBand + 4;
-  const labelX = sourceX + SOURCE_COLUMN + LABEL_GAP;
+  const { sourceX, labelX } = geometry;
   const maxSource = Math.max(1, ...sourceDelta);
 
-  svg.replaceChildren();
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("width", width);
   svg.setAttribute("height", height);
@@ -85,7 +157,7 @@ export function drawTower(
   const eras = svgEl("g", { class: "eras" });
   for (const span of eraSpans(views)) {
     const y = rows[span.first].y;
-    const h = rows[span.last].y + geometry.rowHeight - y;
+    const h = rows[span.last].y + rows[span.last].height - y;
     eras.append(
       svgEl("rect", {
         x: 0,
@@ -133,15 +205,15 @@ export function drawTower(
       "data-index": index,
       tabindex: compact ? -1 : 0,
     });
-    const top = row.y + geometry.rowHeight * 0.18;
-    const bandHeight = geometry.rowHeight * 0.64;
+    const bandHeight = row.height * BAND_FILL;
+    const top = row.mid - bandHeight / 2;
 
     g.append(
       svgEl("rect", {
         x: 0,
         y: row.y,
         width,
-        height: geometry.rowHeight,
+        height: row.height,
         class: "hit",
       }),
     );
@@ -154,33 +226,53 @@ export function drawTower(
         class: "connector",
       }),
     );
-    g.append(
-      svgEl("rect", {
-        x: axis - row.band / 2,
-        y: top,
-        width: row.band,
-        height: bandHeight,
-        rx: 2,
-        class: "band",
-      }),
-    );
-    g.append(
-      svgEl("rect", {
-        x: axis - row.core / 2,
-        y: top,
-        width: row.core,
-        height: bandHeight,
-        rx: 2,
-        class: "core",
-      }),
-    );
+
+    // The seed row is its bytes, when they are known and fit.
+    const byteNodes =
+      index === 0 && seedBytes
+        ? seedBytesNodes(seedBytes, {
+            axis,
+            mid: row.mid,
+            width: row.core,
+            height: row.height * SEED_FILL,
+          })
+        : null;
+    if (byteNodes) {
+      g.append(
+        svgEl(
+          "title",
+          {},
+          `${seedBytes.length} bytes, one cell each, darker for larger values`,
+        ),
+        ...byteNodes,
+      );
+    } else {
+      g.append(
+        svgEl("rect", {
+          x: axis - row.band / 2,
+          y: top,
+          width: row.band,
+          height: bandHeight,
+          rx: 2,
+          class: "band",
+        }),
+        svgEl("rect", {
+          x: axis - row.core / 2,
+          y: top,
+          width: row.core,
+          height: bandHeight,
+          rx: 2,
+          class: "core",
+        }),
+      );
+    }
 
     if (geometry.labels) {
       const source = sourceDelta[index];
       if (source > 0) {
         const w = Math.max(
           2,
-          SOURCE_COLUMN * (Math.log10(source) / Math.log10(maxSource)),
+          geometry.sourceColumn * (Math.log10(source) / Math.log10(maxSource)),
         );
         g.append(
           svgEl("rect", {
@@ -200,18 +292,11 @@ export function drawTower(
           view.title,
         ),
       );
-      const produced =
-        index === 0
-          ? `${trustBytes} B trusted`
-          : `${humanBytes(view.bytes)} out`;
-      // The milestone rides on the size line only where there is room;
-      // on a phone the chips above the picture carry it.
-      const withMilestone = view.milestone && width >= WIDE;
       g.append(
         svgEl(
           "text",
           { x: labelX, y: row.mid + 11, class: "size" },
-          withMilestone ? `${produced} · ${view.milestone}` : produced,
+          sizes[index],
         ),
       );
     }

@@ -6,7 +6,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { towerLayout, eraSpans, tracePoints } from "../site/js/tower.js";
+import {
+  towerLayout,
+  eraSpans,
+  tracePoints,
+  byteMapLayout,
+  towerGeometry,
+  TowerKind,
+} from "../site/js/tower.js";
 
 // Four floors in build order, as floorViews returns them.
 const views = [
@@ -59,6 +66,30 @@ test("rows stack in build order", () => {
     [0, 40, 80, 120],
   );
   assert.equal(height, 160);
+  assert.deepEqual(
+    rows.map((row) => row.height),
+    [40, 40, 40, 40],
+  );
+});
+
+// The seed row can be taller than the rest, so its byte map has room;
+// the rows below it move down by the difference.
+test("a taller seed row pushes the rest down", () => {
+  const { rows, height } = towerLayout(views, {
+    trustBytes: 181,
+    ...geometry,
+    seedRowHeight: 100,
+  });
+  assert.deepEqual(
+    rows.map((row) => [row.y, row.height, row.mid]),
+    [
+      [0, 100, 50],
+      [100, 40, 120],
+      [140, 40, 160],
+      [180, 40, 200],
+    ],
+  );
+  assert.equal(height, 220);
 });
 
 // The band is log-scaled bytes produced so far, from minBand to maxBand
@@ -127,4 +158,48 @@ test("a trace becomes points at the middle of each hop's row", () => {
     { index: 1, y: 60 },
     { index: 0, y: 20 },
   ]);
+});
+
+// The seed is drawn as one square cell per byte. The layout picks the
+// column count that gives the largest cells inside the box, and every
+// byte gets a cell.
+test("the byte map fits every byte in the box with the largest cells", () => {
+  const map = byteMapLayout(181, 83, 59);
+  assert.equal(map.cols, 16);
+  assert.equal(map.rows, 12);
+  assert.ok(map.cols * map.rows >= 181);
+  assert.ok(map.cols * map.cell <= 83 + 1e-9);
+  assert.ok(map.rows * map.cell <= 59 + 1e-9);
+  assert.ok(Math.abs(map.cell - 59 / 12) < 1e-9);
+
+  // A tall narrow box gets few columns.
+  const narrow = byteMapLayout(181, 28, 54);
+  assert.ok(narrow.cols < 16);
+  assert.ok(narrow.cols * narrow.rows >= 181);
+  assert.ok(narrow.cols * narrow.cell <= 28 + 1e-9);
+  assert.ok(narrow.rows * narrow.cell <= 54 + 1e-9);
+});
+
+// The full tower's labels never run past the right edge, from a 360px
+// phone (328px of column) to a desktop, for the longest label the page
+// draws; the bands keep a usable width.
+test("the label column fits inside the tower at every width", () => {
+  const labelWidth = 170;
+  for (let width = 328; width <= 1100; width += 2) {
+    const g = towerGeometry(width, { kind: TowerKind.FULL, labelWidth });
+    assert.ok(
+      g.labelX + labelWidth <= width,
+      `label runs to ${g.labelX + labelWidth} at width ${width}`,
+    );
+    assert.ok(g.maxBand >= g.minBand * 10, `band ${g.maxBand} at ${width}`);
+    assert.ok(g.seedRowHeight > g.rowHeight);
+  }
+});
+
+// The compact tower has no labels, so its bands take the whole width
+// right of the arcs.
+test("the compact tower has no label column", () => {
+  const g = towerGeometry(160, { kind: TowerKind.COMPACT, labelWidth: 0 });
+  assert.equal(g.labels, false);
+  assert.ok(g.arcSpace + g.maxBand <= 160);
 });

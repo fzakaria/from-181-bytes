@@ -3,11 +3,48 @@
 // by assembling the source with site/js/hex0.js and comparing the result
 // with the seed's bytes.
 
-import { assemble, describeLine, headings } from "./hex0.js";
+import {
+  assemble,
+  describeLine,
+  headings,
+  expandTabs,
+  lineStops,
+  lineSegments,
+  hangColumn,
+} from "./hex0.js";
 import { el } from "./dom.js";
 
 const HEX_RADIX = 16;
 const hex2 = (n) => n.toString(HEX_RADIX).toUpperCase().padStart(2, "0");
+
+// The listing wraps instead of scrolling sideways. A wrapped line hangs
+// from the rightmost of its columns that leaves COMMENT_ROOM columns for
+// the rest, so a comment wraps under itself when there is room and under
+// the hex when there is not. A mnemonic or comment that starts right of
+// the hang column moves to a new row whole rather than splitting after
+// its marker. The line numbers sit in a gutter of GUTTER_PAD columns more
+// than the widest number.
+const COMMENT_ROOM = 24;
+const GUTTER_PAD = 2;
+const PROBE_TEXT = "0".repeat(100);
+
+// One observer for the listing pane; it re-hangs whichever source is
+// shown when the pane changes width.
+let rehang = () => {};
+let paneObserver = null;
+
+// The width of one character of the listing's font, in pixels.
+function charWidth(pre) {
+  const probe = el(
+    "span",
+    { class: "probe", "aria-hidden": "true" },
+    PROBE_TEXT,
+  );
+  pre.append(probe);
+  const width = probe.getBoundingClientRect().width / PROBE_TEXT.length;
+  probe.remove();
+  return width;
+}
 
 // Render one architecture's seed. `seed` is a Uint8Array, `source` the
 // text of hex0_<arch>.hex0, `arch` its seeds/index.json entry.
@@ -68,7 +105,21 @@ export function renderSeed({ seed, source, arch }) {
   });
   grid.replaceChildren(...buttons);
 
-  const lineNodes = text.map((content, index) => {
+  // One block per source line: its number in the gutter, then the line
+  // with tabs expanded so its columns can be counted, as segments with
+  // the spaces after each kept outside it.
+  const expanded = text.map(expandTabs);
+  const segmentsOf = expanded.map((content) =>
+    lineSegments(content).map(({ start, text: piece }) => {
+      const words = piece.trimEnd();
+      return {
+        start,
+        node: el("span", { class: "seg" }, words),
+        gap: piece.slice(words.length),
+      };
+    }),
+  );
+  const lineNodes = segmentsOf.map((segments, index) => {
     const produced = bytesOfLine.has(index);
     return el(
       "span",
@@ -78,10 +129,32 @@ export function renderSeed({ seed, source, arch }) {
         onclick: produced ? () => select(bytesOfLine.get(index)[0]) : null,
       },
       el("span", { class: "num" }, String(index + 1)),
-      content,
+      segments.flatMap(({ node, gap }) => [node, gap || null]),
     );
   });
   pre.replaceChildren(...lineNodes);
+  const gutter = String(text.length).length + GUTTER_PAD;
+  pre.style.setProperty("--gutter", String(gutter));
+
+  // Hang each line for the pane's current width, now and on every resize.
+  const stops = expanded.map(lineStops);
+  rehang = () => {
+    const padding = parseFloat(getComputedStyle(lineNodes[0]).paddingRight);
+    const columns =
+      Math.floor((pre.clientWidth - 2 * padding) / charWidth(pre)) - gutter;
+    lineNodes.forEach((node, index) => {
+      const hang = hangColumn(stops[index], columns, COMMENT_ROOM);
+      node.style.setProperty("--hang", String(hang));
+      for (const segment of segmentsOf[index]) {
+        segment.node.classList.toggle("whole", segment.start > hang);
+      }
+    });
+  };
+  rehang();
+  if (!paneObserver) {
+    paneObserver = new ResizeObserver(() => rehang());
+    paneObserver.observe(pre);
+  }
 
   let hot = [];
   let hotLine = null;

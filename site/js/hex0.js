@@ -115,3 +115,94 @@ export function headings(sourceLines) {
   }
   return out;
 }
+
+// The listing wraps long lines instead of scrolling sideways. To keep
+// wrapped lines readable, each line hangs its continuation rows from one
+// of its own columns, measured in characters after tabs are expanded.
+
+const TAB_WIDTH = 8;
+const TAB = "\t";
+const MNEMONIC_MARKER = ";";
+const COMMENT_MARKER = "#";
+
+// Replace each tab with spaces up to the next TAB_WIDTH column.
+export function expandTabs(text) {
+  let out = "";
+  for (const ch of text) {
+    if (ch !== TAB) {
+      out += ch;
+      continue;
+    }
+    out += " ".repeat(TAB_WIDTH - (out.length % TAB_WIDTH));
+  }
+  return out;
+}
+
+// The columns a wrapped line may hang from, in increasing order: where its
+// first non-space character sits, the ';' of a mnemonic, the '#' of the
+// comment, and the comment's first word. `text` has no tabs.
+export function lineStops(text) {
+  const stops = new Set();
+  const indent = text.search(/\S/);
+  if (indent < 0) {
+    return [];
+  }
+  stops.add(indent);
+
+  // A mnemonic marker counts only before the comment starts.
+  const hash = text.indexOf(COMMENT_MARKER);
+  const semicolon = text.indexOf(MNEMONIC_MARKER);
+  if (semicolon >= 0 && (hash < 0 || semicolon < hash)) {
+    stops.add(semicolon);
+  }
+
+  // The comment: its run of '#' and the word after it.
+  if (hash >= 0) {
+    stops.add(hash);
+    const word = text.slice(hash).search(/[^#\s]/);
+    if (word >= 0) {
+      stops.add(hash + word);
+    }
+  }
+  return [...stops].sort((a, b) => a - b);
+}
+
+// Split a line into the segments that may move to a row of their own
+// when it wraps: the hex, the mnemonic from ';' and the comment from '#'.
+// Each is { start, text }, text keeping the spaces that follow it, so the
+// segments join back into the line. `text` has no tabs.
+export function lineSegments(text) {
+  if (text === "") {
+    return [];
+  }
+  const hash = text.indexOf(COMMENT_MARKER);
+  const semicolon = text.indexOf(MNEMONIC_MARKER);
+
+  // Where each segment after the first starts.
+  const cuts = [];
+  if (semicolon > 0 && (hash < 0 || semicolon < hash)) {
+    cuts.push(semicolon);
+  }
+  if (hash > 0) {
+    cuts.push(hash);
+  }
+
+  const starts = [0, ...cuts];
+  return starts.map((start, i) => ({
+    start,
+    text: text.slice(start, starts[i + 1] ?? text.length),
+  }));
+}
+
+// The rightmost stop that leaves at least `room` columns of a
+// `columns`-wide pane for the text hung from it, or 0 when none does.
+export function hangColumn(stops, columns, room) {
+  let hang = 0;
+  for (const stop of stops) {
+    if (columns - stop < room) {
+      break;
+    }
+    hang = stop;
+  }
+  return hang;
+}

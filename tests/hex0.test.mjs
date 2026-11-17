@@ -8,7 +8,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { assemble, describeLine, headings } from "../site/js/hex0.js";
+import {
+  assemble,
+  describeLine,
+  headings,
+  expandTabs,
+  lineStops,
+  lineSegments,
+  hangColumn,
+} from "../site/js/hex0.js";
 
 const seedsDir = fileURLToPath(new URL("../site/data/seeds/", import.meta.url));
 
@@ -80,6 +88,61 @@ test("each line sits under the nearest heading or label above it", () => {
     ":_start",
     ":_start",
   ]);
+});
+
+// Tabs become spaces up to the next multiple of eight columns, so the
+// listing can be measured in character columns.
+test("tabs expand to the next eight-column stop", () => {
+  assert.equal(expandTabs("\t58"), "        58");
+  assert.equal(expandTabs("ab\tc"), "ab      c");
+  assert.equal(expandTabs("12345678\tx"), "12345678        x");
+  assert.equal(expandTabs("no tabs"), "no tabs");
+});
+
+// The columns a wrapped line may hang from, left to right: where the hex
+// starts, the ';' of a mnemonic, the '#' of a comment and the comment's
+// first word. A line with no hex hangs from its comment alone.
+test("a line's hang stops are its indent, ';', '#' and comment text", () => {
+  assert.deepEqual(
+    lineStops("    58      ; pop_eax   # Get the count"),
+    [4, 12, 24, 26],
+  );
+  assert.deepEqual(lineStops("7F 45 4C 46   ## e_ident"), [0, 14, 17]);
+  assert.deepEqual(lineStops("# SPDX-License-Identifier: GPL"), [0, 2]);
+  assert.deepEqual(lineStops("#:ELF_base"), [0, 1]);
+  assert.deepEqual(lineStops("01 00"), [0]);
+  assert.deepEqual(lineStops(""), []);
+});
+
+// A line splits into the hex, the mnemonic from ';' and the comment
+// from '#', each with its starting column; the pieces join back into the
+// line. A ';' inside the comment does not start a mnemonic.
+test("a line splits into hex, mnemonic and comment segments", () => {
+  const line = "    58      ; pop_eax   # Get; the count";
+  const segments = lineSegments(line);
+  assert.deepEqual(segments, [
+    { start: 0, text: "    58      " },
+    { start: 12, text: "; pop_eax   " },
+    { start: 24, text: "# Get; the count" },
+  ]);
+  assert.equal(segments.map(({ text }) => text).join(""), line);
+  assert.deepEqual(lineSegments("# only a comment"), [
+    { start: 0, text: "# only a comment" },
+  ]);
+  assert.deepEqual(lineSegments("01 00"), [{ start: 0, text: "01 00" }]);
+  assert.deepEqual(lineSegments(""), []);
+});
+
+// A wrapped line hangs from the rightmost stop that still leaves room for
+// the rest to read; with no such stop it hangs from column 0.
+test("the hang is the rightmost stop that leaves room", () => {
+  const stops = [4, 12, 24, 26];
+  assert.equal(hangColumn(stops, 80, 20), 26);
+  assert.equal(hangColumn(stops, 45, 20), 24);
+  assert.equal(hangColumn(stops, 40, 20), 12);
+  assert.equal(hangColumn(stops, 30, 20), 4);
+  assert.equal(hangColumn(stops, 20, 20), 0);
+  assert.equal(hangColumn([], 80, 20), 0);
 });
 
 // The real thing: for every architecture, assembling the stage0 hex0 source

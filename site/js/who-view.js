@@ -6,6 +6,7 @@ import { humanBytes } from "./format.js";
 import { trace } from "./trace.js";
 import { filterFiles } from "./view.js";
 import { drawTower } from "./tower-view.js";
+import { TowerKind } from "./tower.js";
 
 // How many matching files the list shows at once.
 const FILE_LIMIT = 300;
@@ -52,7 +53,7 @@ export function renderWho(
   chain,
   files,
   titleOf,
-  { views, trustBytes, onTrace },
+  { views, trustBytes, seedBytes, onTrace },
 ) {
   const select = document.getElementById("who-path");
   const filter = document.getElementById("who-filter");
@@ -67,8 +68,9 @@ export function renderWho(
   const drawMini = () => {
     mini = drawTower(svg, views, {
       trustBytes,
+      seedBytes,
       sourceDelta: views.map(() => 0),
-      compact: true,
+      kind: TowerKind.COMPACT,
     });
     mini.setTrace(lastTrace);
   };

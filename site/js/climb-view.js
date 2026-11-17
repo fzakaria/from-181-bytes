@@ -117,7 +117,7 @@ const sourceDeltas = (views) =>
 
 // Render the climb. Returns { stop, setTrace }: stop removes the
 // listeners, setTrace draws a "who built you?" trace on the picture.
-export function renderClimb(views, { trustBytes }) {
+export function renderClimb(views, { trustBytes, seedBytes }) {
   const svg = document.getElementById("tower");
   const cardNode = document.getElementById("floor-card");
   const built = document.getElementById("gauge-built");
@@ -187,6 +187,7 @@ export function renderClimb(views, { trustBytes }) {
   function draw() {
     tower = drawTower(svg, views, {
       trustBytes,
+      seedBytes,
       sourceDelta: sourceDeltas(views),
       onPick,
     });
