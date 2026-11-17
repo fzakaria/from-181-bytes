@@ -28,8 +28,13 @@ data fails `nix flake check` rather than deploying.
   nixpkgs fetches it from and the hash it checks. The page maps bytes to
   source lines itself, by assembling the source in the browser.
 - `chain.json`: for `i686-linux`, every derivation in the build graph of
-  `minimal-bootstrap.gcc-glibc`, the stages, who built each derivation,
-  running totals, and each stage's texture.
+  `minimal-bootstrap.gcc-glibc-unwrapped`, the last stage, with the
+  stages, who built each derivation, running totals, each stage's
+  texture, and the handoff: the store path and size of
+  `minimal-bootstrap.gcc-glibc`, the wrapper `pkgs/stdenv/linux/stage0.nix`
+  takes GCC 16 and glibc through. The wrapper is shell scripts and
+  symlinks that bash writes, so it is not a stage, and it is outside the
+  graph: the totals end at the last stage and do not count it.
 
 ## What the numbers mean
 
@@ -44,7 +49,7 @@ https://cache.nixos.org -R --json`). It is not the NAR size: hex0's
   stage before it, each counted once. The seed is not counted: it is
   trusted, not produced. Builder scripts and unpacked source trees count,
   because the chain produced them. `gcc-16.2.0-src`, the unpacked GCC
-  source, is 908,239,393 bytes of the 1,763,330,048 on i686-linux.
+  source, is 908,239,393 bytes of the 1,761,663,954 on i686-linux.
 - **Source read** is the same over fetched derivations: tarballs, patches
   and the stage0-posix source tree.
 - **Built by** is computed from the derivation graph, not written by hand.

@@ -15,6 +15,13 @@ import { drawTower } from "./tower-view.js";
 // stage being read.
 const READING_GAP_PX = 48;
 
+// A store path's narinfo on the binary cache, from its hash.
+const CACHE = "https://cache.nixos.org/";
+const STORE_PREFIX = "/nix/store/";
+const HASH_LENGTH = 32;
+const narinfoOf = (path) =>
+  `${CACHE}${path.slice(STORE_PREFIX.length, STORE_PREFIX.length + HASH_LENGTH)}.narinfo`;
+
 // The fragment that names a stage: #stage-<id>.
 const STAGE_FRAGMENT = "#stage-";
 const ESCAPE = "Escape";
@@ -37,9 +44,26 @@ function citation() {
   );
 }
 
+// What the standard environment receives instead of the last stage: the
+// wrapper's name, linked to its store path on the cache, and its size.
+function handoffNote(handoff) {
+  return el(
+    "p",
+    { class: "handoff" },
+    "stdenv receives this GCC through ",
+    el(
+      "a",
+      { href: narinfoOf(handoff.path), title: handoff.path },
+      handoff.name,
+    ),
+    `, ${humanBytes(handoff.bytes)} of shell scripts and symlinks. The totals end at this stage and do not count it.`,
+  );
+}
+
 // The card for one stage. `onLink` is called with a stage id when one of
-// the card's links to another stage is followed.
-function card(view, views, onLink) {
+// the card's links to another stage is followed; `handoff` is shown on
+// the last stage.
+function card(view, views, handoff, onLink) {
   const link = (id, title) =>
     el(
       "a",
@@ -91,6 +115,7 @@ function card(view, views, onLink) {
       view.milestone ? el("span", { class: "badge" }, view.milestone) : null,
     ),
     el("p", {}, view.note),
+    view.index === views.length - 1 && handoff ? handoffNote(handoff) : null,
     el(
       "dl",
       { class: "facts" },
@@ -129,7 +154,7 @@ const sourceDeltas = (views) =>
   );
 
 // Render the climb.
-export function renderClimb(views, { trustBytes, seedBytes }) {
+export function renderClimb(views, { trustBytes, seedBytes, handoff }) {
   const svg = document.getElementById("tower");
   const cardNode = document.getElementById("stage-card");
   const gauges = document.getElementById("gauges");
@@ -166,7 +191,7 @@ export function renderClimb(views, { trustBytes, seedBytes }) {
       shownCard = index;
       cardNode.dataset.stage = views[index].id;
       cardNode.replaceChildren(
-        ...card(views[index], views, follow).filter(Boolean),
+        ...card(views[index], views, handoff, follow).filter(Boolean),
       );
     }
 

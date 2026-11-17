@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { stages } from "../site/js/stages.js";
+import { stages, Role } from "../site/js/stages.js";
 import { stageViews } from "../site/js/view.js";
 
 const read = (path) =>
@@ -128,4 +128,38 @@ test("every stage has a texture from a file in its output", () => {
     assert.ok(texture.file.length > 0, stage.id);
   }
   assert.equal(chain.stages[index.get("seed")].texture.size, seeds.seed.size);
+});
+
+// A stage written in a script language was run, not compiled, so no
+// compiler, assembler or linker can have built it. gcc-wrapper-16.2.0,
+// shell scripts and symlinks, once claimed GCC 16 as its builder.
+const SCRIPT_LANGUAGES = new Set(["shell"]);
+const TRANSLATORS = new Set([Role.CC, Role.ASM, Role.LINK, Role.SEED]);
+test("no script stage claims a compiler, assembler or linker as builder", () => {
+  const roleOf = new Map(stages.map((stage) => [stage.id, stage.role]));
+  for (const [i, stage] of stages.entries()) {
+    if (!SCRIPT_LANGUAGES.has(stage.writtenIn)) {
+      continue;
+    }
+    const builtBy = chain.stages[i].builtBy;
+    assert.ok(
+      !TRANSLATORS.has(roleOf.get(builtBy)),
+      `${stage.id} is ${stage.writtenIn} but built by ${builtBy}`,
+    );
+  }
+});
+
+// The standard environment gets the last stage through a wrapper that is
+// not a stage: its store path and size are recorded for the last card,
+// and the totals end at the last stage, without it.
+test("the handoff wrapper is recorded and not counted", () => {
+  const { handoff } = chain;
+  assert.match(handoff.path, /^\/nix\/store\/[a-z0-9]{32}-gcc-wrapper-/);
+  assert.ok(handoff.bytes > 0);
+  assert.ok(
+    !chain.nodes.some((node) =>
+      Object.values(node.outputs).includes(handoff.path),
+    ),
+  );
+  assert.deepEqual(chain.totals, chain.stages.at(-1).cumulative);
 });

@@ -389,14 +389,10 @@ export const stages = [
     note: "GCC 16 again, targeting glibc.",
     link: "https://github.com/NixOS/nixpkgs/pull/479322",
   },
-  {
-    id: "gcc-glibc-wrapper",
-    era: "cxx",
-    attr: "gcc-glibc",
-    role: Role.TOOL,
-    title: "gcc-wrapper-16.2.0",
-    writtenIn: "shell",
-    note: "What stage0.nix hands the standard environment, with glibc. Its build closure is this whole page.",
-    link: MINIMAL_BOOTSTRAP,
-  },
 ];
+
+// What the standard environment receives instead of the last stage: the
+// wrapper pkgs/stdenv/linux/stage0.nix takes GCC 16 and glibc through.
+// It is shell scripts and symlinks, so it is not a stage; gen-data
+// records its store path and size for the last stage's card.
+export const HANDOFF_ATTR = "gcc-glibc";

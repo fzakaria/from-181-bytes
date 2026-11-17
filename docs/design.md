@@ -78,6 +78,15 @@ a sheet at the bottom of the screen, shown only while the picture is on
 screen. `tests/browser/climb.test.mjs` drives all of this in headless
 Chromium.
 
+## The last stage
+
+The chain ends at GCC 16.2.0 built against glibc. The standard
+environment receives it through `gcc-wrapper-16.2.0`, 16 KiB of shell
+scripts and symlinks that bash writes; no compiler builds it, so it is not
+a stage. The last card names it and links its store path, and the totals
+end before it. `tests/data.test.mjs` fails if a stage written in shell
+claims a compiler, assembler or linker as its builder.
+
 ## One system
 
 nixpkgs builds this chain for `i686-linux` and `x86_64-linux`. The page

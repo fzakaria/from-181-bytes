@@ -126,6 +126,16 @@ const stageData = stageNodes.map((stage) => {
 });
 
 const root = stageData.at(-1);
+
+// The wrapper the standard environment receives in place of the last
+// stage. It is outside the graph and the totals; its store path and size
+// are kept for the last stage's card.
+const handoffPath = evaluated.handoff.outputs.out;
+const handoff = {
+  name: evaluated.handoff.name,
+  path: handoffPath,
+  bytes: listingBytes(listing(handoffPath)),
+};
 const chain = {
   schema: SCHEMA,
   nixpkgs: { rev },
@@ -134,6 +144,7 @@ const chain = {
   stages: stageData,
   nodes,
   totals: root.cumulative,
+  handoff,
 };
 writeFileSync(`${outDir}/chain.json`, `${JSON.stringify(chain)}\n`);
 

@@ -60,20 +60,24 @@ pkgs.writeShellApplication {
     STAGE_ATTRS="$attrs" nix eval --json --impure --expr \
       "import ${./chain.nix} { nixpkgs = ${nixpkgs}; system = \"$system\"; attrs = builtins.getEnv \"STAGE_ATTRS\"; }" \
       > "$dir/stages.json"
-    root_attr=$(jq -r '.[-1]' <<< "$attrs")
+    root_attr=$(jq -r '.stages[-1]' <<< "$attrs")
     root_drv=$(jq -r --arg a "$root_attr" '.stages[$a].drvPath' "$dir/stages.json")
 
     nix derivation show -r "$root_drv" > "$dir/derivations.json"
     jq -r '(.derivations // .) | .[] | . as $d | .outputs | keys[] | $d.env[.]' \
       "$dir/derivations.json" | sort -u > "$dir/outputs.txt"
+    # The wrapper the standard environment receives is not in the graph,
+    # but its size is shown, so the cache is asked about it too.
+    jq -r '.handoff.outputs[]' "$dir/stages.json" > "$dir/handoff.txt"
 
+    sort -u "$dir/outputs.txt" "$dir/handoff.txt" > "$dir/paths.txt"
     xargs nix path-info --store "$cache" --json --json-format 1 \
-      < "$dir/outputs.txt" > "$dir/path-info.json"
+      < "$dir/paths.txt" > "$dir/path-info.json"
     # The script is single-quoted on purpose: sh expands $1 to $3.
     # shellcheck disable=SC2016
     xargs -P "$jobs" -I{} sh -c \
       'nix store ls --store "$1" -R --json "$2" > "$3/$(basename "$2").json"' \
-      _ "$cache" {} "$dir/ls" < "$dir/outputs.txt"
+      _ "$cache" {} "$dir/ls" < "$dir/paths.txt"
 
     # Each stage's largest output file, fetched whole, for the texture its
     # bar is drawn with. tools/largest-files.mjs prints "<stage> <file>",

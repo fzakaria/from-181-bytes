@@ -42,6 +42,7 @@ document.getElementById("seed-provenance").replaceChildren(
 renderClimb(stageViews(stages, chain), {
   trustBytes: entry.size,
   seedBytes: seed,
+  handoff: chain.handoff,
 });
 
 // The footer: the nixpkgs commit the data describes, and what nix build
